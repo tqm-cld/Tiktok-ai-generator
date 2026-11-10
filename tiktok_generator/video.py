@@ -70,7 +70,9 @@ def _cut_clip(source: _Source, offset: float, duration: float, motion: str, shoc
     def make_frame(t):
         p = t / max(duration, 0.01)
         ease = p * p * (3 - 2 * p)                   # sanft beschleunigen/abbremsen
-        if motion == "push":
+        if motion == "ai":                           # KI-Clip bewegt sich selbst → nur sanft zoomen
+            zoom, pan = 1.02 + 0.05 * ease, 0.0
+        elif motion == "push":
             zoom, pan = 1.04 + 0.14 * ease, 0.0
         elif motion == "pull":
             zoom, pan = 1.18 - 0.14 * ease, 0.0
@@ -148,24 +150,51 @@ def _hook_clips(text: str, cfg: Config) -> list:
     return [clip.with_start(0)]
 
 
-def build_video(voice_clips: list[VoiceClip], media_files: list[Path], out_path: Path, cfg: Config,
+def _badge_clip(text: str, start: float, duration: float, cfg: Config):
+    """Kleines Etikett oben links, z. B. „KI-SZENE · VORSCHAU“ im Hybrid-Vorschaumodus."""
+    font = load_font(str(cfg.fonts_dir), 38)
+    w = int(font.getlength(text)) + 44
+    img = Image.new("RGBA", (w, 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([0, 0, w - 1, 63], radius=32, fill=(37, 244, 238, 230))
+    d.text((22, 10), text, font=font, fill=(11, 11, 18))
+    return ImageClip(np.array(img)).with_start(start).with_duration(duration).with_position((48, 60))
+
+
+def build_video(voice_clips: list[VoiceClip], media_files: list, out_path: Path, cfg: Config,
                 logger="bar", scenes=None, hook_title: str = "") -> Path:
-    """Setzt das Video zusammen. `scenes` liefert Soundeffekte und Betonungswörter."""
-    backgrounds, sound, all_words, emphasis = [], [], [], set()
+    """Setzt das Video zusammen. `scenes` liefert Soundeffekte und Betonungswörter.
+
+    `media_files` enthält pro Shot entweder einen Pfad oder ein ShotMedia-Objekt (Hybrid-Modus):
+    Bei KI-Momenten läuft zuerst der KI-Clip, weitere Schnitte im selben Shot nutzen das Stockvideo."""
+    backgrounds, sound, all_words, emphasis, badges = [], [], [], set(), []
     sources = []
     t = 0.0
     for i, (voice, media) in enumerate(zip(voice_clips, media_files)):
         scene = scenes[i] if scenes else None
         scene_len = voice.duration + PAUSE_BETWEEN_SCENES
-        source = _Source(media)
+        primary_path = getattr(media, "primary", media)
+        secondary_path = getattr(media, "secondary", None)
+        is_ai = getattr(media, "ai", False)
+        source = _Source(primary_path)
         sources.append(source)
+        backup = _Source(secondary_path) if secondary_path else None
+        if backup:
+            sources.append(backup)
+        if getattr(media, "planned_ai", False):
+            badges.append(_badge_clip("KI-SZENE · VORSCHAU", t, scene_len, cfg))
         sfx = getattr(scene, "sfx", "none") or "none"
 
         offset, cut_start = 0.0, t
         for k, cut_len in enumerate(_scene_cuts(scene_len)):
             motion = MOTIONS[(i + k) % len(MOTIONS)]
             shock = k == 0 and sfx in SHOCK_SFX
-            backgrounds.append(_cut_clip(source, offset, cut_len, motion, shock, cfg))
+            if is_ai and k == 0:                         # KI-Clip: von Anfang an, ohne starke Kamerafahrt
+                backgrounds.append(_cut_clip(source, 0.0, cut_len, "ai", shock, cfg))
+            elif is_ai and backup:                       # restliche Schnitte des KI-Moments: Stockvideo
+                backgrounds.append(_cut_clip(backup, offset, cut_len, motion, False, cfg))
+            else:
+                backgrounds.append(_cut_clip(source, offset, cut_len, motion, shock, cfg))
             # Wisch-Geräusch an jedem Schnitt (außer ganz am Anfang und wo ein anderer Effekt läuft)
             if cut_start > 0 and not (k == 0 and sfx != "none"):
                 sound.append(effect_clip("whoosh", cut_start - 0.2, volume=0.35))
@@ -187,7 +216,7 @@ def build_video(voice_clips: list[VoiceClip], media_files: list[Path], out_path:
         print(f"  ⚠ Das Video ist nur {total:.0f}s lang (Ziel: min. {cfg.min_seconds}s).")
 
     background = concatenate_videoclips(backgrounds, method="chain").with_duration(total)
-    overlays = _hook_clips(hook_title, cfg) + make_subtitle_clips(all_words, total, cfg, emphasis)
+    overlays = badges + _hook_clips(hook_title, cfg) + make_subtitle_clips(all_words, total, cfg, emphasis)
     video = CompositeVideoClip([background, *overlays], size=cfg.size, use_bgclip=True).with_duration(total)
 
     track = pick_music(cfg)

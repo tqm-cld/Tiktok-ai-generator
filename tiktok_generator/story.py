@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from .config import Config
+from .costs import CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, claude_cost
 
 SfxName = Literal["none", "whoosh", "impact", "riser", "tick", "boom"]
 
@@ -33,6 +34,8 @@ class Scene(BaseModel):
                                      "riser vor einer Enthüllung, tick für Zahlen/Zeit, whoosh für schnelle Wechsel, sonst none")
     emphasis: str = Field(description="Das wichtigste Wort dieses Satzes (genau so geschrieben wie im Text), "
                                       "wird im Untertitel farbig hervorgehoben. Leer lassen, wenn keins.")
+    ai_moment: bool = Field(default=False, description="true nur für die wichtigsten Momente (Hook, Schock/Höhepunkt, "
+                                                       "Wendung) – nur diese bekommen eine KI-generierte Videoszene")
 
 
 class Source(BaseModel):
@@ -47,6 +50,7 @@ class Story(BaseModel):
     hashtags: list[str]
     sources: list[Source] = []
     fact_notes: str = ""
+    script_cost_usd: float = 0.0          # tatsächliche Claude-Kosten (aus den Verbrauchsangaben der API)
 
     @property
     def full_text(self) -> str:
@@ -80,7 +84,11 @@ Regeln:
   lieber "über 1600 Kilometer pro Stunde").
 - Verwende NUR Fakten aus den Recherche-Notizen. Kennzeichne Gedankenexperimente und Schätzungen als solche
   ("Forscher schätzen ...", "theoretisch ..."). Erfinde keine Zahlen.
-- visual_prompt: filmisch, viel Bewegung, realistisch, auf Englisch, ohne Text im Bild."""
+- visual_prompt: filmisch, viel Bewegung, realistisch, auf Englisch, ohne Text im Bild.
+- ai_moment: Markiere genau so viele Shots wie verlangt – immer Shot 1 (Hook), dann Schock-/Höhepunkt und Wendung.
+  Nur diese Shots werden als teure KI-Videoszene erzeugt (ca. 4 Sekunden): ihr visual_prompt muss ein einziges,
+  klares Motiv mit starker Bewegung beschreiben. Alle anderen Shots kommen aus Stockvideos – dort muss
+  visual_query ein leicht zu findendes Alltagsmotiv sein."""
 
 
 def _length_targets(seconds: int | None, cfg: Config) -> tuple[int, int, int]:
@@ -110,11 +118,39 @@ def _collect_sources(content) -> list[Source]:
     return [Source(title=t, url=u) for u, t in list(chosen.items())[:8]]
 
 
-def research_facts(topic: str, cfg: Config, client) -> tuple[str, list[Source]]:
+def usage_cost(response, requested_model: str) -> float:
+    """Berechnet die tatsächlichen Kosten einer Antwort aus `response.usage`."""
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return 0.0
+    tokens_in = (getattr(usage, "input_tokens", 0) or 0) + (getattr(usage, "cache_creation_input_tokens", 0) or 0) \
+        + (getattr(usage, "cache_read_input_tokens", 0) or 0)
+    tokens_out = getattr(usage, "output_tokens", 0) or 0
+    tool_use = getattr(usage, "server_tool_use", None)
+    searches = (getattr(tool_use, "web_search_requests", 0) or 0) if tool_use else 0
+    model = getattr(response, "model", None) or requested_model
+    if model not in CLAUDE_MODELS:  # z. B. Ersatzmodell nach einer Ablehnung → mit dem teuersten Preis rechnen
+        model = DEFAULT_CLAUDE_MODEL
+    return claude_cost(tokens_in, tokens_out, searches, model)
+
+
+def pick_ai_moments(scenes: list[Scene], count: int) -> list[bool]:
+    """Wählt genau `count` Shots für KI-Videoszenen: Hook zuerst, dann die vom Skript markierten,
+    dann nach Wucht des Soundeffekts (boom > impact > riser > ...)."""
+    if count <= 0 or not scenes:
+        return [False] * len(scenes)
+    weight = {"boom": 4, "impact": 3, "riser": 2, "whoosh": 1, "tick": 1, "none": 0}
+    order = sorted(range(1, len(scenes)),
+                   key=lambda i: (not scenes[i].ai_moment, -weight.get(scenes[i].sfx, 0), i))
+    chosen = {0, *order[:max(0, count - 1)]}
+    return [i in chosen for i in range(len(scenes))]
+
+
+def research_facts(topic: str, cfg: Config, client) -> tuple[str, list[Source], float]:
     """Schritt 1a: Faktenrecherche mit der Websuche von Claude."""
     messages = [{"role": "user", "content": f"Frage für das Video: {topic}"}]
-    tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}]
-    response = None
+    tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 4}]
+    response, cost = None, 0.0
     for _ in range(4):  # "pause_turn" = Claude ist noch nicht fertig → weitermachen lassen
         response = client.beta.messages.create(
             model=cfg.claude_model,
@@ -126,6 +162,7 @@ def research_facts(topic: str, cfg: Config, client) -> tuple[str, list[Source]]:
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
         )
+        cost += usage_cost(response, cfg.claude_model)
         if response.stop_reason != "pause_turn":
             break
         messages = [messages[0], {"role": "assistant", "content": response.content}]
@@ -135,10 +172,11 @@ def research_facts(topic: str, cfg: Config, client) -> tuple[str, list[Source]]:
     notes = "\n".join(b.text for b in response.content if getattr(b, "type", "") == "text").strip()
     if not notes:
         raise StoryError("❌ Die Recherche hat keine Ergebnisse geliefert. Bitte erneut versuchen.")
-    return notes, _collect_sources(response.content)
+    return notes, _collect_sources(response.content), cost
 
 
-def generate_story(topic: str, cfg: Config, seconds: int | None = None, fact_check: bool = True) -> Story:
+def generate_story(topic: str, cfg: Config, seconds: int | None = None, fact_check: bool = True,
+                   ai_moments: int = 3) -> Story:
     """Erzeugt ein faktengeprüftes Skript. Ohne API-Schlüssel gibt es ein Demo-Skript."""
     if not cfg.anthropic_api_key:
         print("  ⚠ Kein ANTHROPIC_API_KEY gefunden → Demo-Skript wird verwendet.")
@@ -150,12 +188,13 @@ def generate_story(topic: str, cfg: Config, seconds: int | None = None, fact_che
     min_words, max_words, shots = _length_targets(seconds, cfg)
 
     try:
-        notes, sources = research_facts(topic, cfg, client) if fact_check else ("", [])
+        notes, sources, cost = research_facts(topic, cfg, client) if fact_check else ("", [], 0.0)
         prompt = (
             f"Thema/Frage: {topic}\n"
             f"Sprache: {cfg.language}\n"
             f"Länge: insgesamt {min_words} bis {max_words} gesprochene Wörter in {shots} Shots "
             f"(Video ca. {seconds or 45} Sekunden).\n"
+            f"KI-Momente: markiere genau {max(1, ai_moments)} Shots mit ai_moment=true.\n"
         )
         if notes:
             prompt += f"\nGeprüfte Recherche-Notizen (einzige Faktenbasis):\n<notizen>\n{notes}\n</notizen>\n"
@@ -176,10 +215,11 @@ def generate_story(topic: str, cfg: Config, seconds: int | None = None, fact_che
     except anthropic.APIConnectionError:
         raise StoryError("❌ Keine Verbindung zu Claude – bitte Internetverbindung prüfen.")
 
+    cost += usage_cost(response, cfg.claude_model)
     draft = response.parsed_output
     if response.stop_reason == "refusal" or draft is None:
         raise StoryError("❌ Claude hat zu diesem Thema kein Skript geschrieben. Probiere ein anderes Thema.")
-    return Story(**draft.model_dump(), sources=sources, fact_notes=notes)
+    return Story(**draft.model_dump(), sources=sources, fact_notes=notes, script_cost_usd=round(cost, 4))
 
 
 # ---------------------------------------------------------------- Demo ohne API-Schlüssel
@@ -204,8 +244,8 @@ def demo_story(seconds: int | None = None) -> Story:
     return story
 
 
-def _s(text, query, prompt, sfx="none", emphasis=""):
-    return Scene(text=text, visual_query=query, visual_prompt=prompt, sfx=sfx, emphasis=emphasis)
+def _s(text, query, prompt, sfx="none", emphasis="", ai=False):
+    return Scene(text=text, visual_query=query, visual_prompt=prompt, sfx=sfx, emphasis=emphasis, ai_moment=ai)
 
 
 def _full_demo_story() -> Story:
@@ -221,7 +261,7 @@ def _full_demo_story() -> Story:
         ],
         scenes=[
             _s("Was würde passieren, wenn die Erde fünf Sekunden aufhört, sich zu drehen?",
-               "earth from space", "slow cinematic push-in on planet earth rotating in space, sun flare", "boom", "fünf"),
+               "earth from space", "slow cinematic push-in on planet earth rotating in space, sun flare", "boom", "fünf", True),
             _s("Am Äquator rast du gerade mit rund 1670 Kilometern pro Stunde durchs All.",
                "city aerial timelapse", "fast aerial flyover of a city at the equator, motion blur, golden hour", "whoosh", "1670"),
             _s("Du spürst es nur nicht, weil sich alles um dich herum mitbewegt.",
@@ -229,15 +269,15 @@ def _full_demo_story() -> Story:
             _s("Doch wenn der Boden plötzlich stoppt, bewegt sich alles andere weiter.",
                "train braking", "high speed train braking hard, sparks flying, dramatic low angle", "impact", "weiter"),
             _s("Menschen, Autos – alles, was nicht fest verankert ist, würde nach Osten geschleudert.",
-               "storm debris wind", "debris and cars blown sideways by extreme wind, slow motion", "boom", "geschleudert"),
+               "storm debris wind", "debris and cars blown sideways by extreme wind, slow motion", "boom", "geschleudert", True),
             _s("Die Luft rast weiter – Winde viel stärker als der schlimmste Tornado.",
                "tornado", "massive tornado tearing across plains, dark storm clouds, epic scale", "whoosh", "Tornado"),
             _s("Selbst die stärksten Tornados erreichen nur gut 320 Kilometer pro Stunde.",
                "storm clouds timelapse", "timelapse of violent storm clouds rotating, lightning", "tick", "320"),
             _s("Und die Ozeane? Sie würden als riesige Flutwellen über die Küsten schwappen.",
-               "huge ocean waves", "gigantic ocean wave crashing over a coastline, aerial, dramatic", "impact", "Flutwellen"),
+               "huge ocean waves", "gigantic ocean wave crashing over a coastline, aerial, dramatic", "impact", "Flutwellen", True),
             _s("Aber hier kommt die Wendung: An den Polen würdest du kaum etwas merken.",
-               "arctic ice", "slow drone shot over calm arctic ice field, soft light", "riser", "Polen"),
+               "arctic ice", "slow drone shot over calm arctic ice field, soft light", "riser", "Polen", True),
             _s("Denn dort drehst du dich fast auf der Stelle.",
                "north pole snow", "person standing alone on snowy polar landscape, camera orbiting", "none", "Stelle"),
             _s("Zum Glück ist das reine Theorie: Es gibt nichts, was die Erde so abrupt stoppen könnte.",

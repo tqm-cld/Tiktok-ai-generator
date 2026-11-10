@@ -12,9 +12,10 @@ from typing import Callable
 from proglog import ProgressBarLogger
 
 from .config import Config
-from .story import Story, demo_story, generate_story
+from . import ledger
+from .story import Story, demo_story, generate_story, pick_ai_moments
 from .video import PAUSE_BETWEEN_SCENES, build_video
-from .visuals import get_media
+from .visuals import get_shot_media
 from .voice import synthesize
 
 ProgressFn = Callable[[int, str], None]
@@ -35,6 +36,8 @@ class VideoResult:
     demo: bool
     warnings: list[str] = field(default_factory=list)
     sources: list[dict] = field(default_factory=list)
+    cost_usd: float = 0.0            # tatsächlich angefallene Kosten dieses Videos
+    ai_shots: list[int] = field(default_factory=list)  # Nummern der Shots, die (geplante) KI-Szenen sind
 
 
 def slugify(text: str) -> str:
@@ -69,7 +72,9 @@ class _RenderProgress(ProgressBarLogger):
 
 def make_video(topic: str, cfg: Config, seconds: int | None = None,
                progress: ProgressFn | None = None, demo: bool = False,
-               fact_check: bool = True, video_model: str = "stock") -> VideoResult:
+               fact_check: bool = True, mode: str = "stock", ai_moments: int = 3) -> VideoResult:
+    """mode: "stock" (nur Stockvideos), "preview" (Hybrid-Vorschau, kostenlos) oder ein freigegebenes
+    KI-Videomodell (Hybrid). ai_moments: wie viele Shots im Hybrid-Modus KI-Szenen werden (1-4)."""
     report = progress or (lambda p, msg: print(f"[{p:3d}%] {msg}"))
 
     # ① Recherche + Skript
@@ -80,7 +85,8 @@ def make_video(topic: str, cfg: Config, seconds: int | None = None,
     else:
         report(_scale(STEP_STORY, 0.1), "Recherchiere Fakten im Web und prüfe sie …" if fact_check
                else "Skript wird geschrieben …")
-        story = generate_story(topic, cfg, seconds, fact_check=fact_check)
+        story = generate_story(topic, cfg, seconds, fact_check=fact_check, ai_moments=ai_moments)
+        ledger.record("claude", story.script_cost_usd, f"Skript: {story.title}")
     report(STEP_STORY[1], f"Skript fertig: „{story.title}“ ({len(story.scenes)} Shots, {len(story.sources)} Quellen)")
 
     run_id = f"{datetime.now():%Y%m%d-%H%M%S}-{slugify(story.title)}"
@@ -93,11 +99,13 @@ def make_video(topic: str, cfg: Config, seconds: int | None = None,
         rate = "-4%" if i == 0 else None
         voices.append(synthesize(scene.text, work_dir / f"voice_{i:02d}.mp3", cfg, rate=rate))
 
-    # ③ Bildmaterial
+    # ③ Bildmaterial – im Hybrid-Modus bekommen die wichtigsten Momente KI-Szenen
+    ai_flags = pick_ai_moments(story.scenes, ai_moments) if mode != "stock" else [False] * len(story.scenes)
     media = []
-    for i, scene in enumerate(story.scenes):
-        report(_scale(STEP_MEDIA, i / len(story.scenes)), f"Suche Bildmaterial: „{scene.visual_query}“ …")
-        media.append(get_media(scene, cfg, work_dir / "media", provider=video_model))
+    for i, (scene, flag) in enumerate(zip(story.scenes, ai_flags)):
+        what = "KI-Szene" if flag and mode != "preview" else "Bildmaterial"
+        report(_scale(STEP_MEDIA, i / len(story.scenes)), f"{what} für Shot {i + 1}: „{scene.visual_query}“ …")
+        media.append(get_shot_media(scene, cfg, work_dir / "media", mode=mode, is_ai_moment=flag))
 
     # ④–⑥ Schnitt, Untertitel, Soundeffekte, Musik
     report(STEP_RENDER[0], "Schnitt, Untertitel, Soundeffekte und Musik werden eingefügt …")
@@ -113,11 +121,15 @@ def make_video(topic: str, cfg: Config, seconds: int | None = None,
     warnings = []
     if any(v.silent for v in voices):
         warnings.append("Die KI-Stimme war nicht erreichbar (Internetverbindung?) – das Video hat keine Sprachausgabe.")
-    if not cfg.pexels_api_key and video_model == "stock":
+    if mode == "preview":
+        warnings.append(f"Hybrid-Vorschau: Die {sum(ai_flags)} markierten Shots („KI-SZENE · VORSCHAU“) würden "
+                        "später KI-Szenen. Noch wurde nichts bezahlt.")
+    if not cfg.pexels_api_key:
         warnings.append("Ohne Pexels-Schlüssel werden generierte Hintergründe statt echter Videoclips verwendet.")
     if use_demo:
         warnings.append("Testmodus ohne Claude: Es wurde das Demo-Skript zur Erdrotation verwendet, nicht dein Thema.")
 
     report(100, "Fertig!")
     return VideoResult(out_path, story.title, caption, duration, use_demo, warnings,
-                       [s.model_dump() for s in story.sources])
+                       [s.model_dump() for s in story.sources], round(story.script_cost_usd, 4),
+                       [i + 1 for i, f in enumerate(ai_flags) if f])

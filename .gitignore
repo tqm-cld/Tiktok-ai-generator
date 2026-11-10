@@ -9,3 +9,4 @@ cache/
 assets/music/*
 !assets/music/.gitkeep
 *TEMP_MPY*
+data/

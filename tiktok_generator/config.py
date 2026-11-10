@@ -26,12 +26,15 @@ class Config:
     pexels_api_key: str = field(default_factory=lambda: os.getenv("PEXELS_API_KEY", ""))
 
     # --- Geschichte ---
-    claude_model: str = "claude-opus-5-5"
+    claude_model: str = field(default_factory=lambda: os.getenv("CLAUDE_MODEL", "claude-opus-5-5"))
     language: str = field(default_factory=lambda: os.getenv("STORY_LANGUAGE", "Deutsch"))
 
     # --- Stimme ---
     voice: str = field(default_factory=lambda: os.getenv("TTS_VOICE", "de-DE-FlorianMultilingualNeural"))
     voice_rate: str = field(default_factory=lambda: os.getenv("TTS_RATE", "+5%"))
+
+    # --- Kostenkontrolle ---
+    monthly_budget_usd: float = field(default_factory=lambda: float(os.getenv("MONTHLY_BUDGET_USD", "10") or 10))
 
     # --- Musik ---
     music_volume: float = field(default_factory=lambda: float(os.getenv("MUSIC_VOLUME", "0.12")))

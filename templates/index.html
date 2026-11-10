@@ -69,6 +69,11 @@
   .stars { color: var(--warn); letter-spacing: 1px; }
   details.more { margin: -6px 0 18px; }
   details.more summary { cursor: pointer; color: var(--muted); font-size: .9rem; padding: 4px 0; }
+  .note-small { color: var(--muted); font-size: .82rem; margin: 8px 0 10px; }
+  .model .tag { display: inline-block; font-size: .7rem; padding: 1px 7px; border-radius: 999px; margin-left: 4px;
+                background: #3ddc9722; color: var(--ok); vertical-align: middle; }
+  #monthInfo { margin-top: 6px; }
+  #monthInfo.over { color: var(--err); font-weight: 700; }
 
   .cost { border-radius: 14px; padding: 14px; margin-bottom: 14px; background: #25f4ee0d; border: 1px solid #25f4ee44; }
   .cost h3 { margin: 0 0 8px; font-size: 1rem; display: flex; justify-content: space-between; gap: 10px; }
@@ -183,15 +188,26 @@
 
         <label class="title">Videoszenen</label>
         <div class="models" id="modelsMain"></div>
-        <details class="more">
-          <summary>KI-Videomodelle vergleichen (🔒 noch nicht freigeschaltet)</summary>
-          <div class="models" id="modelsLocked" style="margin-top:10px"></div>
+        <div id="momentsRow" hidden>
+          <div class="row">
+            <label class="title" for="aiMoments">KI-Szenen pro Video</label>
+            <span class="length-value" id="aiMomentsLabel">3</span>
+          </div>
+          <input type="range" id="aiMoments" min="1" max="4" step="1" value="3">
+          <div class="ticks"><span>1 = nur Hook</span><span>Hook + Höhepunkte</span><span>4</span></div>
+        </div>
+        <details class="more" id="hybridModels">
+          <summary>Hybrid mit echten KI-Szenen – Modelle im Vergleich (🔒 wartet auf deine Freigabe)</summary>
+          <p class="note-small">Kosten für ein fertiges 45-s-Video mit <b id="momentsInfo">3</b> KI-Szenen,
+            inklusive Recherche &amp; Skript. Rest der Szenen: kostenlose Stockvideos.</p>
+          <div class="models" id="modelsLocked"></div>
         </details>
 
         <div class="cost" id="cost">
           <h3><span>Voraussichtliche Kosten</span><span id="costTotal">…</span></h3>
           <ul id="costItems"></ul>
           <p class="note" id="costNote"></p>
+          <p class="note" id="monthInfo"></p>
           <label class="consent" id="consentRow" hidden>
             <input type="checkbox" id="consent">
             <span id="consentText"></span>
@@ -247,7 +263,7 @@
     <div class="field">
       <label for="anthropicKey">Claude-API-Schlüssel <span class="pill" id="anthropicStatus"></span></label>
       <input id="anthropicKey" type="password" autocomplete="off" placeholder="sk-ant-…">
-      <small>Für Recherche und Skript (ca. 0,20–0,50 $ pro Video). <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></small>
+      <small>Für Recherche und Skript (je nach Modell ca. 0,03–0,50 $ pro Video). <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></small>
     </div>
     <div class="field">
       <label for="pexelsKey">Pexels-API-Schlüssel <span class="pill" id="pexelsStatus"></span></label>
@@ -266,6 +282,16 @@
       </select>
       <small id="musicInfo"></small>
     </div>
+    <div class="field">
+      <label for="claudeModel">Claude-Modell für Recherche &amp; Skript</label>
+      <select id="claudeModel"></select>
+      <small>Der größte Kostenblock pro Video. Günstigere Modelle sparen Geld, prüfen Fakten aber weniger gründlich.</small>
+    </div>
+    <div class="field">
+      <label for="budget">Monatsbudget (US-$)</label>
+      <input id="budget" type="number" inputmode="decimal" min="0" max="1000" step="1" placeholder="10">
+      <small id="budgetInfo">Ist das Budget erreicht, startet die App keine kostenpflichtigen Videos mehr.</small>
+    </div>
     <div class="dialog-actions">
       <button class="icon-btn" value="cancel" formnovalidate>Abbrechen</button>
       <button class="primary" id="saveSettings" value="default">Speichern</button>
@@ -275,7 +301,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const topic = $("topic"), seconds = $("seconds"), factCheck = $("factCheck");
+const topic = $("topic"), seconds = $("seconds"), factCheck = $("factCheck"), aiMoments = $("aiMoments");
 let pollTimer = null, models = [], selectedModel = "stock", currentEstimate = null;
 const usd = (v) => v === 0 ? "0 $" : (v < 0.01 ? "<0,01" : v.toFixed(2).replace(".", ",")) + " $";
 const range = (a, b) => a === b ? usd(a) : `${usd(a).replace(" $", "")}–${usd(b)}`;
@@ -284,39 +310,53 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch { return 
 
 seconds.addEventListener("input", () => { $("secondsLabel").textContent = seconds.value; refreshEstimate(); });
 factCheck.addEventListener("change", refreshEstimate);
+aiMoments.addEventListener("input", () => {
+  $("aiMomentsLabel").textContent = aiMoments.value; $("momentsInfo").textContent = aiMoments.value;
+  refreshEstimate(); loadModels();
+});
+async function loadModels() {
+  models = await (await fetch("/api/models?ai_moments=" + aiMoments.value)).json();
+  renderModels();
+}
 document.querySelectorAll(".chip").forEach(c =>
   c.addEventListener("click", () => { topic.value = c.textContent.replace(/^\S+\s/, ""); }));
 
+let bestValue = null;
 function renderModels() {
+  bestValue = models.filter(m => !m.integrated && m.tier === "hybrid").sort((a, b) => a.total_max - b.total_max)[0]?.key;
   const card = (m) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "model" + (m.integrated ? "" : " locked") + (m.key === selectedModel ? " selected" : "");
-    const price = m.integrated ? (m.usd_per_second ? range(m.cost_45s_min, m.cost_45s_max) : "0 $")
-                               : `🔒 ${range(m.cost_45s_min, m.cost_45s_max)}`;
+    const price = m.usd_per_second === 0 ? "0 $" : (m.integrated ? "" : "🔒 ") + range(m.total_min, m.total_max);
     b.innerHTML = `<span class="dot"></span><span><span class="name"></span><br>
       <span class="meta"><span class="stars"></span> · <span class="prov"></span> · <span class="res"></span></span></span>
       <span class="price"></span>`;
     b.querySelector(".name").textContent = m.name;
+    if (m.key === bestValue) b.querySelector(".name").insertAdjacentHTML("beforeend", '<span class="tag">günstigste Wahl</span>');
+    if (m.usd_per_second) b.querySelector(".res").textContent = `${m.resolution} · ${m.billed_seconds}-s-Clips`;
     b.querySelector(".stars").textContent = "★".repeat(m.quality) + "☆".repeat(5 - m.quality);
     b.querySelector(".prov").textContent = m.provider;
-    b.querySelector(".res").textContent = m.resolution;
+    if (!m.usd_per_second) b.querySelector(".res").textContent = m.resolution;
     b.querySelector(".price").textContent = price;
     b.title = m.notes + (m.integrated ? "" : " – Noch nicht eingebaut: wird erst nach deiner Zustimmung integriert.");
     b.addEventListener("click", () => {
-      if (!m.integrated) { showError(`${m.name} ist noch nicht freigeschaltet. Preis pro 45-s-Video ca. ${range(m.cost_45s_min, m.cost_45s_max)}. Sag Bescheid, wenn du es einbauen lassen möchtest.`); return; }
+      if (!m.integrated) { showError(`${m.name} ist noch nicht freigeschaltet. Ein fertiges 45-s-Video mit ${aiMoments.value} KI-Szenen kostet damit ca. ${range(m.total_min, m.total_max)}. Es wird erst nach deiner Zustimmung eingebaut.`); return; }
       selectedModel = m.key; showError(""); renderModels(); refreshEstimate();
     });
     return b;
   };
+  const locked = models.filter(m => !m.integrated).sort((a, b) => a.total_max - b.total_max);
   $("modelsMain").replaceChildren(...models.filter(m => m.integrated).map(card));
-  $("modelsLocked").replaceChildren(...models.filter(m => !m.integrated).map(card));
+  $("modelsLocked").replaceChildren(...locked.map(card));
+  $("momentsRow").hidden = selectedModel === "stock";
 }
 
 async function refreshEstimate() {
   try {
     const res = await fetch("/api/estimate", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seconds: +seconds.value, model: selectedModel, fact_check: factCheck.checked }) });
+      body: JSON.stringify({ seconds: +seconds.value, mode: selectedModel, fact_check: factCheck.checked,
+                             ai_moments: +aiMoments.value }) });
     const est = await res.json();
     currentEstimate = est;
     $("costTotal").textContent = est.paid ? `ca. ${range(est.total_min, est.total_max)}` : "kostenlos";
@@ -331,13 +371,18 @@ async function refreshEstimate() {
     $("consentRow").hidden = !est.paid;
     $("consent").checked = false;
     $("consentText").textContent = `Ich bin einverstanden, dass für dieses Video ca. ${range(est.total_min, est.total_max)} über meinen API-Schlüssel abgerechnet werden.`;
+    const m = est.month;
+    $("monthInfo").textContent = est.over_budget
+      ? `⛔ Monatsbudget reicht nicht: ${usd(m.spent)} von ${usd(m.budget)} verbraucht. Budget in den Einstellungen anpassen.`
+      : `Diesen Monat ausgegeben: ${usd(m.spent)} von ${usd(m.budget)} Budget.`;
+    $("monthInfo").classList.toggle("over", !!est.over_budget);
     updateButton();
   } catch {}
 }
 $("consent").addEventListener("change", updateButton);
 function updateButton() {
   const busy = $("submit").dataset.busy === "1";
-  $("submit").disabled = busy || (currentEstimate?.paid && !$("consent").checked);
+  $("submit").disabled = busy || !!currentEstimate?.over_budget || (currentEstimate?.paid && !$("consent").checked);
 }
 
 function showError(msg) { const b = $("errorBox"); b.textContent = msg; b.classList.toggle("show", !!msg); }
@@ -400,7 +445,7 @@ $("form").addEventListener("submit", async (e) => {
   setProgress({ progress: 0, status: "queued", message: "Wird gestartet …" });
   try {
     const res = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic: text, seconds: +seconds.value, model: selectedModel,
+      body: JSON.stringify({ topic: text, seconds: +seconds.value, mode: selectedModel, ai_moments: +aiMoments.value,
                              fact_check: factCheck.checked, confirm_cost: $("consent").checked }) });
     const job = await res.json();
     if (!res.ok) throw new Error(job.error || "Fehler beim Starten.");
@@ -419,7 +464,7 @@ function poll(id) {
       setProgress(job);
       if (job.status === "done") {
         store.set("currentJob", null);
-        $("progressTitle").textContent = `✅ Fertig – ${job.duration} Sekunden`;
+        $("progressTitle").textContent = `✅ Fertig – ${job.duration} s` + (job.cost_usd ? ` · Kosten: ${usd(job.cost_usd)}` : " · kostenlos");
         showVideo(job.video, job.sources || []); showWarnings(job.warnings || []);
         setBusy(false); loadGallery();
         if (innerWidth < 860) $("resultCard").scrollIntoView({ behavior: "smooth" });
@@ -462,6 +507,11 @@ async function loadSettings() {
   const sel = $("voice");
   if (![...sel.options].some(o => o.value === s.voice)) sel.add(new Option(s.voice, s.voice));
   sel.value = s.voice;
+  const cm = $("claudeModel");
+  cm.replaceChildren(...s.claude_models.map(([k, v]) => new Option(v, k)));
+  cm.value = s.claude_model;
+  $("budget").value = s.month.budget;
+  $("budgetInfo").textContent = `Diesen Monat ausgegeben: ${usd(s.month.spent)}. Ist das Budget erreicht, startet die App keine kostenpflichtigen Videos mehr.`;
   $("musicInfo").textContent = s.music_count
     ? `🎵 ${s.music_count} eigene Musikstücke in assets/music gefunden.`
     : "🎵 Keine eigene Musik – es wird automatisch ein Doku-Klangteppich erzeugt.";
@@ -474,14 +524,15 @@ document.querySelectorAll("#openSettings, [data-open-settings]").forEach(b =>
 $("saveSettings").addEventListener("click", async (e) => {
   e.preventDefault();
   await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ANTHROPIC_API_KEY: $("anthropicKey").value, PEXELS_API_KEY: $("pexelsKey").value, TTS_VOICE: $("voice").value }) });
+    body: JSON.stringify({ ANTHROPIC_API_KEY: $("anthropicKey").value, PEXELS_API_KEY: $("pexelsKey").value,
+                           TTS_VOICE: $("voice").value, CLAUDE_MODEL: $("claudeModel").value,
+                           MONTHLY_BUDGET_USD: String($("budget").value) }) });
   $("anthropicKey").value = ""; $("pexelsKey").value = "";
-  await loadSettings(); refreshEstimate(); dialog.close();
+  await loadSettings(); refreshEstimate(); loadModels(); dialog.close();
 });
 
 (async () => {
-  models = await (await fetch("/api/models")).json();
-  renderModels();
+  await loadModels();
   await loadSettings();
   refreshEstimate();
   loadGallery();

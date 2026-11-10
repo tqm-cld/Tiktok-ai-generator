@@ -9,7 +9,7 @@ fertiges 9:16-MP4 (30–60 s), bedienbar direkt vom **iPhone**.
 | 🔎 Recherche & Faktencheck | Claude sucht im Web, prüft Zahlen, sammelt Quellen | ┐ |
 | ✍️ Skript mit starkem Hook | Claude schreibt nur aus den geprüften Fakten: Hook → Spannung → Wendung → Pointe | ┘ ca. 0,20–0,50 $ |
 | 🗣️ Natürliche deutsche KI-Stimme | Microsoft „Florian/Seraphina Multilingual“, Hook langsamer gesprochen | 0 $ |
-| 🎥 Bewegte Videoszenen | Testmodus: Hochkant-Stockvideos (Pexels) + Kamerafahrten · später optional KI-Videomodelle 🔒 | 0 $ |
+| 🎥 Bewegte Videoszenen | Hochkant-Stockvideos (Pexels) + Kamerafahrten · **Hybrid:** echte KI-Szenen für Hook & Höhepunkte (🔒 nach Freigabe) | 0 $ (Hybrid ca. 0,31–0,37 $) |
 | ✂️ Dynamischer Schnitt | kurze Einstellungen (≤ 3 s), Zoom-Schläge, Schwenks, Lichtblitz + Wackeln bei Schock-Momenten | 0 $ |
 | 💬 Wortgenaue Untertitel | aktuelles Wort gelb, Schlüsselwort pink, „Pop“-Animation, Hook-Titel oben | 0 $ |
 | 🔊 Soundeffekte | Whoosh, Impact, Boom, Riser, Tick – selbst erzeugt, ohne Lizenzprobleme | 0 $ |
@@ -20,7 +20,15 @@ kostet, startet sie erst, nachdem du ausdrücklich zugestimmt hast – auch der 
 Kostenpflichtige KI-Videomodelle sind sichtbar, aber gesperrt (🔒), bis du sie freigibst.
 Es wird **nichts automatisch veröffentlicht**. Du lädst das Video selbst bei TikTok hoch.
 
-👉 Vergleich der KI-Videomodelle mit Kosten pro Video: [docs/KI-VIDEOMODELLE.md](docs/KI-VIDEOMODELLE.md)
+👉 Vergleich der KI-Videomodelle, Kosten pro 45-s-Video und pro Monat: [docs/KI-VIDEOMODELLE.md](docs/KI-VIDEOMODELLE.md)
+
+### Die drei Modi für Videoszenen
+
+| Modus | Was passiert | Kosten der Szenen |
+|---|---|---|
+| **Nur Stockvideos** | alle Shots aus kostenlosen Pexels-Videos | 0 $ |
+| **Hybrid-Vorschau** | wie oben, aber die geplanten KI-Momente (Hook, Schock, Wendung) sind im Video mit „KI-SZENE · VORSCHAU“ markiert – so siehst du vorab, wo später KI-Szenen kommen | 0 $ |
+| **Hybrid mit KI-Modell** 🔒 | die 1–4 wichtigsten Momente werden echte KI-Videoszenen (je ca. 4 s), der Rest Stockvideos | ca. 0,31–0,37 $ (3 KI-Szenen, Seedance 1.5 Pro) – wird erst nach deiner Zustimmung eingebaut |
 
 ---
 
@@ -66,7 +74,7 @@ solange du die App nutzt. Der Computer muss eingeschaltet bleiben, denn dort wir
 1. Frage eingeben oder einen Vorschlag antippen.
 2. Länge wählen (30–60 s).
 3. „Faktencheck mit Websuche“ an lassen (empfohlen).
-4. Videoszenen: **Testmodus** (kostenlos).
+4. Videoszenen: **Nur Stockvideos** oder **Hybrid-Vorschau** (beide kostenlos). Bei Hybrid die Zahl der KI-Szenen wählen.
 5. Kosten prüfen und bei Bedarf **Zustimmung anhaken**.
 6. **„✨ Video erstellen“** antippen. Der Fortschritt wird live angezeigt.
    Du kannst das iPhone dabei sperren: Beim Öffnen läuft die Anzeige weiter.
@@ -123,6 +131,23 @@ spannungsvollen Doku-Klangteppich.
 
 ---
 
+## 💰 Kosten im Griff
+
+- **Vor jedem Video:** Kostenschätzung + Zustimmungs-Häkchen (der Server prüft das zusätzlich).
+- **Nach jedem Video:** die tatsächlichen Kosten (aus den Verbrauchsangaben der API berechnet).
+- **Monatsbudget** (⚙️ Einstellungen, Standard 10 $): Ist es erreicht, startet kein kostenpflichtiges Video mehr.
+  Alle Ausgaben stehen lokal in `data/ausgaben.json`.
+- **Claude-Modell wählbar:** Opus 5.5 (Standard, gründlichster Faktencheck), Sonnet 5.5 (halb so teuer) oder
+  Haiku 5.5 (am günstigsten). Das Skript ist der größte Kostenblock pro Video.
+- Einmal erzeugte KI-Clips werden gespeichert und nie doppelt bezahlt.
+
+## 📲 Später nur mit dem iPhone (ohne laufenden Computer)
+
+Die App ist bereits eine iPhone-Web-App (Home-Bildschirm-Symbol, mobiles Layout). Damit sie ohne deinen Computer
+läuft, muss sie nur auf einem kleinen Cloud-Server statt auf dem PC laufen (z. B. ein europäischer Mini-Server
+für einige Euro im Monat – Preis vor Buchung prüfen). Es entsteht **keine neue App**: Du öffnest dieselbe Seite
+dann über eine feste Internet-Adresse mit HTTPS. Das richten wir auf Wunsch als nächsten Schritt gemeinsam ein.
+
 ## 🛠️ Für Fortgeschrittene
 
 | Was | Wo |
@@ -133,9 +158,11 @@ spannungsvollen Doku-Klangteppich.
 | Sprechtempo / Stimme | `TTS_RATE`, `TTS_VOICE` in `.env` |
 | Stil der Skripte | `SCRIPT_SYSTEM` / `RESEARCH_SYSTEM` in `tiktok_generator/story.py` |
 | Preise / Modelle | `tiktok_generator/costs.py` |
+| KI-Videoanbieter einbinden | `AI_PROVIDERS` in `tiktok_generator/visuals.py` |
+| Monatsbudget / Claude-Modell | `MONTHLY_BUDGET_USD`, `CLAUDE_MODEL` in `.env` (oder ⚙️ Einstellungen) |
 | Port | `PORT=9000` in `.env` |
 
-Kommandozeile (optional): `python main.py "Frage" --seconds 45` (`--no-factcheck`, `--demo`)
+Kommandozeile (optional): `python main.py "Frage" --seconds 45` (`--no-factcheck`, `--demo`, `--mode preview`, `--ai-moments 3`)
 
 ### Projektaufbau
 
@@ -149,7 +176,8 @@ tiktok_generator/
   pipeline.py              ← steuert alle Schritte + Fortschritt
   story.py                 ← ① Recherche, Faktencheck, Skript (Claude)
   voice.py                 ← ② KI-Stimme + Wortzeitstempel
-  visuals.py               ← ③ Bildquelle (Stock jetzt, KI-Videomodelle später)
+  visuals.py               ← ③ Bildquelle: Stock, Hybrid-Vorschau, KI-Anbieter (nach Freigabe)
+  ledger.py                ←    Ausgabenbuch + Monatsbudget
   media.py                 ←    Pexels-Suche / generierte Hintergründe
   video.py                 ← ④ dynamischer Schnitt, Hook-Titel, Export
   subtitles.py             ← ⑤ wortgenaue animierte Untertitel

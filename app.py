@@ -21,17 +21,18 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, send_from_directory
 
 from tiktok_generator.config import PROJECT_ROOT, Config
-from tiktok_generator.costs import catalog, estimate
+from tiktok_generator import ledger
+from tiktok_generator.costs import CLAUDE_MODELS, catalog, estimate
 from tiktok_generator.pipeline import make_video
 from tiktok_generator.story import StoryError
-from tiktok_generator.visuals import ProviderNotEnabled, available_providers
+from tiktok_generator.visuals import ProviderNotEnabled, available_modes
 
 PORT = int(os.getenv("PORT", "8765"))
 # PHONE_ACCESS=0 in .env schaltet den Zugriff vom Handy ab (dann nur noch dieser Computer)
 PHONE_ACCESS = os.getenv("PHONE_ACCESS", "1") != "0"
 HOST = "0.0.0.0" if PHONE_ACCESS else "127.0.0.1"
 ENV_FILE = PROJECT_ROOT / ".env"
-SETTING_KEYS = ["ANTHROPIC_API_KEY", "PEXELS_API_KEY", "TTS_VOICE"]
+SETTING_KEYS = ["ANTHROPIC_API_KEY", "PEXELS_API_KEY", "TTS_VOICE", "CLAUDE_MODEL", "MONTHLY_BUDGET_USD"]
 COOKIE = "tiktok_access"
 
 app = Flask(__name__)
@@ -138,17 +139,18 @@ def _video_info(path: Path) -> dict:
     }
 
 
-def _run_job(job_id: str, topic: str, seconds: int, model: str, fact_check: bool):
+def _run_job(job_id: str, topic: str, seconds: int, mode: str, fact_check: bool, ai_moments: int):
     def progress(percent: int, message: str):
         _update(job_id, progress=percent, message=message)
 
     _update(job_id, status="running", message="Starte …")
     try:
         result = make_video(topic, Config(), seconds=seconds, progress=progress,
-                            fact_check=fact_check, video_model=model)
+                            fact_check=fact_check, mode=mode, ai_moments=ai_moments)
         _update(job_id, status="done", progress=100, message="Fertig!",
                 video=_video_info(result.video_path), demo=result.demo,
-                duration=round(result.duration), warnings=result.warnings, sources=result.sources)
+                duration=round(result.duration), warnings=result.warnings, sources=result.sources,
+                cost_usd=result.cost_usd, ai_shots=result.ai_shots)
     except (StoryError, ProviderNotEnabled) as e:
         _update(job_id, status="error", message=str(e))
     except Exception as e:  # unerwarteter Fehler → Details in die Konsole
@@ -156,20 +158,29 @@ def _run_job(job_id: str, topic: str, seconds: int, model: str, fact_check: bool
         _update(job_id, status="error", message=f"❌ Unerwarteter Fehler: {type(e).__name__}: {e}")
 
 
-def _parse_request(data: dict) -> tuple[str, int, str, bool]:
-    topic = str(data.get("topic", "")).strip()
+def _int(value, default: int, lo: int, hi: int) -> int:
     try:
-        seconds = int(data.get("seconds", 45))
+        return max(lo, min(hi, int(value)))
     except (TypeError, ValueError):
-        seconds = 45
-    seconds = max(30, min(60, seconds))
-    model = str(data.get("model", "stock"))
+        return default
+
+
+def _parse_request(data: dict) -> tuple[str, int, str, bool, int]:
+    topic = str(data.get("topic", "")).strip()
+    seconds = _int(data.get("seconds"), 45, 30, 60)
+    mode = str(data.get("mode", "stock"))
     fact_check = data.get("fact_check", True) not in (False, "false", "0", 0)
-    return topic, seconds, model, fact_check
+    ai_moments = _int(data.get("ai_moments"), 3, 1, 4)
+    return topic, seconds, mode, fact_check, ai_moments
 
 
-def _estimate_for(seconds: int, model: str, fact_check: bool) -> dict:
-    return estimate(seconds, model, fact_check=fact_check, has_claude=bool(Config().anthropic_api_key))
+def _estimate_for(seconds: int, mode: str, fact_check: bool, ai_moments: int) -> dict:
+    cfg = Config()
+    est = estimate(seconds, mode, ai_moments=ai_moments, fact_check=fact_check,
+                   has_claude=bool(cfg.anthropic_api_key), claude_model=cfg.claude_model)
+    est["month"] = ledger.summary(cfg.monthly_budget_usd)
+    est["over_budget"] = est["paid"] and est["month"]["spent"] + est["total_max"] > cfg.monthly_budget_usd
+    return est
 
 
 # ---------------------------------------------------------------- Seiten & API
@@ -192,15 +203,17 @@ def manifest():
 
 @app.get("/api/models")
 def models():
-    enabled = available_providers()
-    return jsonify([{**m, "integrated": m["key"] in enabled} for m in catalog()])
+    enabled = available_modes()
+    moments = _int(request.args.get("ai_moments"), 3, 1, 4)
+    return jsonify([{**m, "integrated": m["key"] in enabled}
+                    for m in catalog(ai_moments=moments, claude_model=Config().claude_model)])
 
 
 @app.post("/api/estimate")
 def api_estimate():
-    _, seconds, model, fact_check = _parse_request(request.get_json(silent=True) or {})
+    _, seconds, mode, fact_check, ai_moments = _parse_request(request.get_json(silent=True) or {})
     try:
-        return jsonify(_estimate_for(seconds, model, fact_check))
+        return jsonify(_estimate_for(seconds, mode, fact_check, ai_moments))
     except KeyError:
         return jsonify(error="Unbekanntes Modell."), 400
 
@@ -208,25 +221,31 @@ def api_estimate():
 @app.post("/api/jobs")
 def create_job():
     data = request.get_json(silent=True) or {}
-    topic, seconds, model, fact_check = _parse_request(data)
+    topic, seconds, mode, fact_check, ai_moments = _parse_request(data)
     if not topic:
         return jsonify(error="Bitte gib ein Thema oder eine Frage ein."), 400
     if len(topic) > 300:
         return jsonify(error="Das Thema ist zu lang (max. 300 Zeichen)."), 400
-    if model not in available_providers():
-        return jsonify(error="Dieses Videomodell ist noch nicht freigeschaltet. "
+    if mode not in available_modes():
+        return jsonify(error="Dieses KI-Videomodell ist noch nicht freigeschaltet. "
                              "Kostenpflichtige Modelle werden erst nach deiner Zustimmung eingebaut."), 400
 
     # Kostenfreigabe: Ohne ausdrückliche Bestätigung startet nichts, was Geld kostet.
-    est = _estimate_for(seconds, model, fact_check)
+    est = _estimate_for(seconds, mode, fact_check, ai_moments)
     if est["paid"] and data.get("confirm_cost") is not True:
         return jsonify(error="Bitte bestätige zuerst die voraussichtlichen Kosten.", estimate=est), 402
+    if est["over_budget"]:
+        m = est["month"]
+        return jsonify(error=f"Das Monatsbudget reicht für dieses Video nicht: {m['spent']:.2f} $ von "
+                             f"{m['budget']:.2f} $ verbraucht, dieses Video kostet bis zu {est['total_max']:.2f} $. "
+                             "Budget in den Einstellungen erhöhen oder nächsten Monat weitermachen.",
+                       estimate=est), 402
 
     job_id = uuid.uuid4().hex[:12]
     with jobs_lock:
         jobs[job_id] = {"id": job_id, "status": "queued", "progress": 0, "message": "Wartet auf den Start …",
                         "topic": topic, "seconds": seconds, "estimate": est}
-    executor.submit(_run_job, job_id, topic, seconds, model, fact_check)
+    executor.submit(_run_job, job_id, topic, seconds, mode, fact_check, ai_moments)
     return jsonify(jobs[job_id]), 202
 
 
@@ -253,10 +272,14 @@ def serve_video(name: str):
 @app.get("/api/settings")
 def get_settings():
     env = {**_read_env(), **{k: os.environ[k] for k in SETTING_KEYS if os.environ.get(k)}}
+    cfg = Config()
     return jsonify({
         "has_anthropic_key": bool(env.get("ANTHROPIC_API_KEY")),
         "has_pexels_key": bool(env.get("PEXELS_API_KEY")),
-        "voice": env.get("TTS_VOICE") or Config().voice,
+        "voice": env.get("TTS_VOICE") or cfg.voice,
+        "claude_model": cfg.claude_model,
+        "claude_models": [[k, v[0]] for k, v in CLAUDE_MODELS.items()],  # Liste = feste Reihenfolge
+        "month": ledger.summary(cfg.monthly_budget_usd),
         "music_count": len([p for p in Config().music_dir.glob("*")
                             if p.suffix.lower() in {".mp3", ".wav", ".m4a", ".ogg"}]),
     })
@@ -271,6 +294,13 @@ def save_settings():
         if value:  # leere Felder = unverändert lassen
             if any(c in value for c in "\r\n"):
                 return jsonify(error="Ungültiger Wert."), 400
+            if key == "CLAUDE_MODEL" and value not in CLAUDE_MODELS:
+                return jsonify(error="Unbekanntes Claude-Modell."), 400
+            if key == "MONTHLY_BUDGET_USD":
+                try:
+                    value = f"{max(0.0, min(1000.0, float(value.replace(',', '.')))):.2f}"
+                except ValueError:
+                    return jsonify(error="Budget bitte als Zahl angeben, z. B. 10."), 400
             updates[key] = value
     if updates:
         _write_env(updates)
