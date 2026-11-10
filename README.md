@@ -32,7 +32,12 @@ Es wird **nichts automatisch veröffentlicht**. Du lädst das Video selbst bei T
 
 ---
 
-## 🚀 Starten (ohne Python-Befehle)
+## ☁️ Online nutzen – nur mit dem iPhone (empfohlen)
+
+Kostenlos bei Hugging Face Spaces, ohne Kreditkarte, Einrichtung komplett im iPhone-Safari:
+👉 **[docs/IPHONE-HOSTING.md](docs/IPHONE-HOSTING.md)**
+
+## 🚀 Auf dem eigenen Computer starten (ohne Python-Befehle)
 
 ### 1. Einmalig: Python installieren
 
@@ -141,13 +146,6 @@ spannungsvollen Doku-Klangteppich.
   Haiku 5.5 (am günstigsten). Das Skript ist der größte Kostenblock pro Video.
 - Einmal erzeugte KI-Clips werden gespeichert und nie doppelt bezahlt.
 
-## 📲 Später nur mit dem iPhone (ohne laufenden Computer)
-
-Die App ist bereits eine iPhone-Web-App (Home-Bildschirm-Symbol, mobiles Layout). Damit sie ohne deinen Computer
-läuft, muss sie nur auf einem kleinen Cloud-Server statt auf dem PC laufen (z. B. ein europäischer Mini-Server
-für einige Euro im Monat – Preis vor Buchung prüfen). Es entsteht **keine neue App**: Du öffnest dieselbe Seite
-dann über eine feste Internet-Adresse mit HTTPS. Das richten wir auf Wunsch als nächsten Schritt gemeinsam ein.
-
 ## 🛠️ Für Fortgeschrittene
 
 | Was | Wo |
@@ -172,6 +170,8 @@ app.py                     ← Webserver, iPhone-Zugang, Kostenfreigabe
 templates/                 ← Oberfläche (index.html, login.html)
 static/                    ← App-Symbol fürs iPhone
 docs/KI-VIDEOMODELLE.md    ← Modellvergleich & Kosten
+docs/IPHONE-HOSTING.md     ← Online stellen bei Hugging Face (iPhone-Anleitung)
+deploy/huggingface/        ← Bauanleitung (Dockerfile) für Hugging Face
 tiktok_generator/
   pipeline.py              ← steuert alle Schritte + Fortschritt
   story.py                 ← ① Recherche, Faktencheck, Skript (Claude)

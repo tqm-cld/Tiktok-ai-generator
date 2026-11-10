@@ -115,7 +115,7 @@ def login():
         code = request.form.get("code", "").strip()
         if hmac.compare_digest(code.encode(), ACCESS_CODE.encode()):
             return _with_cookie(redirect("/"))
-        error = "Falscher Code – er steht im schwarzen Fenster auf deinem Computer."
+        error = "Falscher Code. Er steht im schwarzen Fenster auf deinem Computer bzw. im Secret ACCESS_CODE."
     return render_template("login.html", error=error)
 
 
