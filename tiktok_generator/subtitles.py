@@ -19,7 +19,8 @@ from .config import Config
 from .voice import Word
 
 WHITE = (255, 255, 255, 255)
-HIGHLIGHT = (255, 221, 0, 255)
+HIGHLIGHT = (255, 221, 0, 255)      # gerade gesprochenes Wort
+EMPHASIS = (255, 70, 120, 255)      # besonders wichtiges Wort (vom Skript markiert)
 OUTLINE = (0, 0, 0, 255)
 
 FONT_CANDIDATES = [
@@ -55,7 +56,11 @@ def group_words(words: list[Word], per_group: int) -> list[list[Word]]:
     return groups
 
 
-def _render(group: list[Word], active: int, font, max_width: int) -> Image.Image:
+def _clean(word: str) -> str:
+    return word.strip(".,!?:;–-\"'„“”").lower()
+
+
+def _render(group: list[Word], active: int, font, max_width: int, emphasis: set[str] = frozenset()) -> Image.Image:
     """Zeichnet eine Wortgruppe; das Wort mit Index `active` wird hervorgehoben."""
     texts = [w.text.upper() for w in group]
     stroke = max(4, font.size // 12)
@@ -83,13 +88,14 @@ def _render(group: list[Word], active: int, font, max_width: int) -> Image.Image
         x = (img.width - total) / 2
         y = stroke + row * line_h
         for i, t, tw in items:
-            draw.text((x, y), t, font=font, fill=HIGHLIGHT if i == active else WHITE,
+            draw.text((x, y), t, font=font, fill=HIGHLIGHT if i == active else (EMPHASIS if _clean(group[i].text) in emphasis else WHITE),
                       stroke_width=stroke, stroke_fill=OUTLINE)
             x += tw + space
     return img
 
 
-def make_subtitle_clips(words: list[Word], duration: float, cfg: Config) -> list[ImageClip]:
+def make_subtitle_clips(words: list[Word], duration: float, cfg: Config,
+                        emphasis: set[str] = frozenset()) -> list[ImageClip]:
     """Erzeugt viele kleine Untertitel-Clips (einen pro Wort), die genau dann erscheinen,
     wenn das Wort gesprochen wird."""
     font = load_font(str(cfg.fonts_dir), cfg.font_size)
@@ -107,7 +113,7 @@ def make_subtitle_clips(words: list[Word], duration: float, cfg: Config) -> list
             end = group[wi + 1].start if wi + 1 < len(group) else group_end
             if end <= start:
                 continue
-            image = np.array(_render(group, wi, font, max_width))
+            image = np.array(_render(group, wi, font, max_width, emphasis))
             h, w = image.shape[:2]
             clip = ImageClip(image).with_start(start).with_duration(end - start)
 

@@ -68,13 +68,24 @@ def _silent_fallback(text: str, out_path: Path) -> VoiceClip:
     return VoiceClip(out_path, duration, words, silent=True)
 
 
-def synthesize(text: str, out_path: Path, cfg: Config) -> VoiceClip:
-    """Erzeugt eine MP3 mit gesprochenem Text und den Wort-Zeitstempeln."""
+FALLBACK_VOICE = "de-DE-ConradNeural"
+
+
+def synthesize(text: str, out_path: Path, cfg: Config, rate: str | None = None) -> VoiceClip:
+    """Erzeugt eine MP3 mit gesprochenem Text und den Wort-Zeitstempeln.
+
+    `rate` überschreibt das Sprechtempo (z. B. "-6%" für einen langsamen, dramatischen Einstieg)."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        words = asyncio.run(_speak(text, cfg.voice, cfg.voice_rate, out_path))
-    except Exception as e:  # z.B. keine Internetverbindung
-        print(f"  ⚠ Sprachausgabe fehlgeschlagen ({type(e).__name__}) → stummer Testmodus.")
+    rate = rate or cfg.voice_rate
+    words = None
+    for voice in dict.fromkeys([cfg.voice, FALLBACK_VOICE]):  # erst Wunschstimme, dann Ersatz
+        try:
+            words = asyncio.run(_speak(text, voice, rate, out_path))
+            break
+        except Exception as e:  # z.B. keine Internetverbindung oder Stimme nicht verfügbar
+            last_error = e
+    if words is None:
+        print(f"  ⚠ Sprachausgabe fehlgeschlagen ({type(last_error).__name__}) → stummer Testmodus.")
         return _silent_fallback(text, out_path)
 
     duration = audio_duration(out_path)

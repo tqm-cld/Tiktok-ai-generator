@@ -4,7 +4,7 @@ Während der Arbeit wird `progress(prozent, text)` aufgerufen, damit man den For
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -12,17 +12,17 @@ from typing import Callable
 from proglog import ProgressBarLogger
 
 from .config import Config
-from .media import fetch_media
 from .story import Story, demo_story, generate_story
 from .video import PAUSE_BETWEEN_SCENES, build_video
+from .visuals import get_media
 from .voice import synthesize
 
 ProgressFn = Callable[[int, str], None]
 
 # Wie viel Prozent jeder Schritt am Gesamtfortschritt ausmacht
-STEP_STORY = (0, 10)
-STEP_VOICE = (10, 25)
-STEP_MEDIA = (25, 40)
+STEP_STORY = (0, 15)
+STEP_VOICE = (15, 28)
+STEP_MEDIA = (28, 40)
 STEP_RENDER = (40, 100)
 
 
@@ -33,7 +33,8 @@ class VideoResult:
     caption: str
     duration: float
     demo: bool
-    warnings: list[str]
+    warnings: list[str] = field(default_factory=list)
+    sources: list[dict] = field(default_factory=list)
 
 
 def slugify(text: str) -> str:
@@ -63,39 +64,46 @@ class _RenderProgress(ProgressBarLogger):
         percent = _scale(STEP_RENDER, value / total)
         if percent != self._last:
             self._last = percent
-            self._progress(percent, f"Video wird gerendert … ({int(100 * value / total)} %)")
+            self._progress(percent, f"Video wird geschnitten und gerendert … ({int(100 * value / total)} %)")
 
 
 def make_video(topic: str, cfg: Config, seconds: int | None = None,
-               progress: ProgressFn | None = None, demo: bool = False) -> VideoResult:
+               progress: ProgressFn | None = None, demo: bool = False,
+               fact_check: bool = True, video_model: str = "stock") -> VideoResult:
     report = progress or (lambda p, msg: print(f"[{p:3d}%] {msg}"))
 
-    # ① Geschichte
+    # ① Recherche + Skript
     use_demo = demo or not cfg.anthropic_api_key
-    report(_scale(STEP_STORY, 0.1), "Geschichte wird geschrieben …" if not use_demo
-           else "Demo-Modus: Beispielgeschichte wird verwendet …")
-    story: Story = demo_story(seconds) if use_demo else generate_story(topic, cfg, seconds)
-    report(STEP_STORY[1], f"Geschichte fertig: „{story.title}“ ({len(story.scenes)} Szenen)")
+    if use_demo:
+        report(_scale(STEP_STORY, 0.2), "Testmodus ohne Claude: geprüftes Demo-Skript wird verwendet …")
+        story: Story = demo_story(seconds)
+    else:
+        report(_scale(STEP_STORY, 0.1), "Recherchiere Fakten im Web und prüfe sie …" if fact_check
+               else "Skript wird geschrieben …")
+        story = generate_story(topic, cfg, seconds, fact_check=fact_check)
+    report(STEP_STORY[1], f"Skript fertig: „{story.title}“ ({len(story.scenes)} Shots, {len(story.sources)} Quellen)")
 
     run_id = f"{datetime.now():%Y%m%d-%H%M%S}-{slugify(story.title)}"
     work_dir = cfg.cache_dir / run_id
 
-    # ② Stimme
+    # ② Stimme – der Hook wird etwas langsamer und eindringlicher gesprochen
     voices = []
     for i, scene in enumerate(story.scenes):
-        report(_scale(STEP_VOICE, i / len(story.scenes)), f"KI-Stimme spricht Szene {i + 1} von {len(story.scenes)} …")
-        voices.append(synthesize(scene.text, work_dir / f"voice_{i:02d}.mp3", cfg))
+        report(_scale(STEP_VOICE, i / len(story.scenes)), f"KI-Stimme spricht Shot {i + 1} von {len(story.scenes)} …")
+        rate = "-4%" if i == 0 else None
+        voices.append(synthesize(scene.text, work_dir / f"voice_{i:02d}.mp3", cfg, rate=rate))
 
-    # ③ Bilder / Videos
+    # ③ Bildmaterial
     media = []
     for i, scene in enumerate(story.scenes):
         report(_scale(STEP_MEDIA, i / len(story.scenes)), f"Suche Bildmaterial: „{scene.visual_query}“ …")
-        media.append(fetch_media(scene.visual_query, cfg, work_dir / "media"))
+        media.append(get_media(scene, cfg, work_dir / "media", provider=video_model))
 
-    # ④–⑥ Untertitel, Musik, Zusammenschnitt
-    report(STEP_RENDER[0], "Untertitel und Musik werden eingefügt …")
+    # ④–⑥ Schnitt, Untertitel, Soundeffekte, Musik
+    report(STEP_RENDER[0], "Schnitt, Untertitel, Soundeffekte und Musik werden eingefügt …")
     out_path = cfg.output_dir / f"{run_id}.mp4"
-    build_video(voices, media, out_path, cfg, logger=_RenderProgress(report))
+    build_video(voices, media, out_path, cfg, logger=_RenderProgress(report),
+                scenes=story.scenes, hook_title=story.hook_title)
 
     caption = f"{story.title} " + " ".join(f"#{h.lstrip('#')}" for h in story.hashtags)
     out_path.with_suffix(".txt").write_text(caption + "\n", encoding="utf-8")
@@ -105,8 +113,11 @@ def make_video(topic: str, cfg: Config, seconds: int | None = None,
     warnings = []
     if any(v.silent for v in voices):
         warnings.append("Die KI-Stimme war nicht erreichbar (Internetverbindung?) – das Video hat keine Sprachausgabe.")
-    if not cfg.pexels_api_key:
-        warnings.append("Ohne Pexels-Schlüssel werden Farbverläufe statt echter Bilder verwendet.")
+    if not cfg.pexels_api_key and video_model == "stock":
+        warnings.append("Ohne Pexels-Schlüssel werden generierte Hintergründe statt echter Videoclips verwendet.")
+    if use_demo:
+        warnings.append("Testmodus ohne Claude: Es wurde das Demo-Skript zur Erdrotation verwendet, nicht dein Thema.")
 
     report(100, "Fertig!")
-    return VideoResult(out_path, story.title, caption, duration, use_demo, warnings)
+    return VideoResult(out_path, story.title, caption, duration, use_demo, warnings,
+                       [s.model_dump() for s in story.sources])

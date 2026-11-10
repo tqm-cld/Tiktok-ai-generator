@@ -30,8 +30,8 @@ class Config:
     language: str = field(default_factory=lambda: os.getenv("STORY_LANGUAGE", "Deutsch"))
 
     # --- Stimme ---
-    voice: str = field(default_factory=lambda: os.getenv("TTS_VOICE", "de-DE-ConradNeural"))
-    voice_rate: str = field(default_factory=lambda: os.getenv("TTS_RATE", "+8%"))
+    voice: str = field(default_factory=lambda: os.getenv("TTS_VOICE", "de-DE-FlorianMultilingualNeural"))
+    voice_rate: str = field(default_factory=lambda: os.getenv("TTS_RATE", "+5%"))
 
     # --- Musik ---
     music_volume: float = field(default_factory=lambda: float(os.getenv("MUSIC_VOLUME", "0.12")))

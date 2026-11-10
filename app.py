@@ -1,11 +1,16 @@
-"""Weboberfläche für den TikTok-KI-Generator.
+"""Weboberfläche für den TikTok-KI-Generator – auch vom iPhone aus bedienbar.
 
 Starten: Doppelklick auf start.bat (Windows) bzw. start.command (macOS) oder ./start.sh (Linux).
-Danach öffnet sich der Browser automatisch auf http://127.0.0.1:8765
+- Am Computer öffnet sich der Browser automatisch.
+- Am iPhone (im selben WLAN): den QR-Code im schwarzen Fenster mit der Kamera scannen.
+  Fremde Geräte brauchen den Zugangscode, der ebenfalls im Fenster steht.
 """
 
+import hmac
 import logging
 import os
+import secrets
+import socket
 import threading
 import traceback
 import uuid
@@ -13,16 +18,21 @@ import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from flask import Flask, abort, jsonify, render_template, request, send_from_directory
+from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, send_from_directory
 
 from tiktok_generator.config import PROJECT_ROOT, Config
+from tiktok_generator.costs import catalog, estimate
 from tiktok_generator.pipeline import make_video
 from tiktok_generator.story import StoryError
+from tiktok_generator.visuals import ProviderNotEnabled, available_providers
 
-HOST = "127.0.0.1"   # nur auf diesem Computer erreichbar
 PORT = int(os.getenv("PORT", "8765"))
+# PHONE_ACCESS=0 in .env schaltet den Zugriff vom Handy ab (dann nur noch dieser Computer)
+PHONE_ACCESS = os.getenv("PHONE_ACCESS", "1") != "0"
+HOST = "0.0.0.0" if PHONE_ACCESS else "127.0.0.1"
 ENV_FILE = PROJECT_ROOT / ".env"
 SETTING_KEYS = ["ANTHROPIC_API_KEY", "PEXELS_API_KEY", "TTS_VOICE"]
+COOKIE = "tiktok_access"
 
 app = Flask(__name__)
 
@@ -32,42 +42,7 @@ jobs: dict[str, dict] = {}
 jobs_lock = threading.Lock()
 
 
-# ---------------------------------------------------------------- Hilfsfunktionen
-
-def _update(job_id: str, **fields):
-    with jobs_lock:
-        jobs[job_id].update(fields)
-
-
-def _video_info(path: Path) -> dict:
-    caption_file = path.with_suffix(".txt")
-    caption = caption_file.read_text(encoding="utf-8").strip() if caption_file.exists() else ""
-    return {
-        "name": path.name,
-        "title": caption.split(" #")[0] if caption else path.stem,
-        "caption": caption,
-        "url": f"/videos/{path.name}",
-        "download_url": f"/videos/{path.name}?download=1",
-        "created": path.stat().st_mtime,
-    }
-
-
-def _run_job(job_id: str, topic: str, seconds: int):
-    def progress(percent: int, message: str):
-        _update(job_id, progress=percent, message=message)
-
-    _update(job_id, status="running", message="Starte …")
-    try:
-        result = make_video(topic, Config(), seconds=seconds, progress=progress)
-        _update(job_id, status="done", progress=100, message="Fertig!",
-                video=_video_info(result.video_path), demo=result.demo,
-                duration=round(result.duration), warnings=result.warnings)
-    except StoryError as e:
-        _update(job_id, status="error", message=str(e))
-    except Exception as e:  # unerwarteter Fehler → Details in die Konsole
-        traceback.print_exc()
-        _update(job_id, status="error", message=f"❌ Unerwarteter Fehler: {type(e).__name__}: {e}")
-
+# ---------------------------------------------------------------- .env lesen/schreiben
 
 def _read_env() -> dict[str, str]:
     values = {}
@@ -94,6 +69,109 @@ def _write_env(updates: dict[str, str]):
         os.environ[k] = v  # sofort wirksam, ohne Neustart
 
 
+def _access_code() -> str:
+    """6-stelliger Zugangscode für Handys – wird einmal erzeugt und in .env gespeichert."""
+    code = os.getenv("ACCESS_CODE") or _read_env().get("ACCESS_CODE")
+    if not code:
+        code = f"{secrets.randbelow(10**6):06d}"
+        _write_env({"ACCESS_CODE": code})
+    os.environ["ACCESS_CODE"] = code
+    return code
+
+
+ACCESS_CODE = _access_code()
+
+
+# ---------------------------------------------------------------- Zugangsschutz
+
+def _is_local() -> bool:
+    return request.remote_addr in ("127.0.0.1", "::1")
+
+
+def _with_cookie(resp):
+    resp.set_cookie(COOKIE, ACCESS_CODE, max_age=60 * 60 * 24 * 365, httponly=True, samesite="Lax")
+    return resp
+
+
+@app.before_request
+def check_access():
+    if _is_local() or request.path in ("/login", "/manifest.webmanifest") or request.path.startswith("/static/"):
+        return None
+    from_link = request.args.get("code", "")
+    code = from_link or request.cookies.get(COOKIE, "")
+    if hmac.compare_digest(code.encode(), ACCESS_CODE.encode()):
+        # Code aus dem QR-Link → als Cookie merken und die Adresse ohne Code anzeigen
+        return _with_cookie(redirect(request.path)) if from_link else None
+    if request.path.startswith(("/api/", "/videos/")):
+        return jsonify(error="Zugangscode fehlt"), 401
+    return redirect("/login")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = ""
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        if hmac.compare_digest(code.encode(), ACCESS_CODE.encode()):
+            return _with_cookie(redirect("/"))
+        error = "Falscher Code – er steht im schwarzen Fenster auf deinem Computer."
+    return render_template("login.html", error=error)
+
+
+# ---------------------------------------------------------------- Videoerstellung
+
+def _update(job_id: str, **fields):
+    with jobs_lock:
+        jobs[job_id].update(fields)
+
+
+def _video_info(path: Path) -> dict:
+    caption_file = path.with_suffix(".txt")
+    caption = caption_file.read_text(encoding="utf-8").strip() if caption_file.exists() else ""
+    return {
+        "name": path.name,
+        "title": caption.split(" #")[0] if caption else path.stem,
+        "caption": caption,
+        "url": f"/videos/{path.name}",
+        "download_url": f"/videos/{path.name}?download=1",
+        "created": path.stat().st_mtime,
+    }
+
+
+def _run_job(job_id: str, topic: str, seconds: int, model: str, fact_check: bool):
+    def progress(percent: int, message: str):
+        _update(job_id, progress=percent, message=message)
+
+    _update(job_id, status="running", message="Starte …")
+    try:
+        result = make_video(topic, Config(), seconds=seconds, progress=progress,
+                            fact_check=fact_check, video_model=model)
+        _update(job_id, status="done", progress=100, message="Fertig!",
+                video=_video_info(result.video_path), demo=result.demo,
+                duration=round(result.duration), warnings=result.warnings, sources=result.sources)
+    except (StoryError, ProviderNotEnabled) as e:
+        _update(job_id, status="error", message=str(e))
+    except Exception as e:  # unerwarteter Fehler → Details in die Konsole
+        traceback.print_exc()
+        _update(job_id, status="error", message=f"❌ Unerwarteter Fehler: {type(e).__name__}: {e}")
+
+
+def _parse_request(data: dict) -> tuple[str, int, str, bool]:
+    topic = str(data.get("topic", "")).strip()
+    try:
+        seconds = int(data.get("seconds", 45))
+    except (TypeError, ValueError):
+        seconds = 45
+    seconds = max(30, min(60, seconds))
+    model = str(data.get("model", "stock"))
+    fact_check = data.get("fact_check", True) not in (False, "false", "0", 0)
+    return topic, seconds, model, fact_check
+
+
+def _estimate_for(seconds: int, model: str, fact_check: bool) -> dict:
+    return estimate(seconds, model, fact_check=fact_check, has_claude=bool(Config().anthropic_api_key))
+
+
 # ---------------------------------------------------------------- Seiten & API
 
 @app.get("/")
@@ -101,25 +179,54 @@ def index():
     return render_template("index.html")
 
 
+@app.get("/manifest.webmanifest")
+def manifest():
+    resp = make_response(jsonify({
+        "name": "TikTok-KI-Generator", "short_name": "KI-Videos", "start_url": "/",
+        "display": "standalone", "background_color": "#0b0b12", "theme_color": "#0b0b12",
+        "icons": [{"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"}],
+    }))
+    resp.mimetype = "application/manifest+json"
+    return resp
+
+
+@app.get("/api/models")
+def models():
+    enabled = available_providers()
+    return jsonify([{**m, "integrated": m["key"] in enabled} for m in catalog()])
+
+
+@app.post("/api/estimate")
+def api_estimate():
+    _, seconds, model, fact_check = _parse_request(request.get_json(silent=True) or {})
+    try:
+        return jsonify(_estimate_for(seconds, model, fact_check))
+    except KeyError:
+        return jsonify(error="Unbekanntes Modell."), 400
+
+
 @app.post("/api/jobs")
 def create_job():
     data = request.get_json(silent=True) or {}
-    topic = str(data.get("topic", "")).strip()
-    try:
-        seconds = int(data.get("seconds", 45))
-    except (TypeError, ValueError):
-        seconds = 45
+    topic, seconds, model, fact_check = _parse_request(data)
     if not topic:
-        return jsonify(error="Bitte gib ein Videothema ein."), 400
+        return jsonify(error="Bitte gib ein Thema oder eine Frage ein."), 400
     if len(topic) > 300:
         return jsonify(error="Das Thema ist zu lang (max. 300 Zeichen)."), 400
-    seconds = max(30, min(60, seconds))
+    if model not in available_providers():
+        return jsonify(error="Dieses Videomodell ist noch nicht freigeschaltet. "
+                             "Kostenpflichtige Modelle werden erst nach deiner Zustimmung eingebaut."), 400
+
+    # Kostenfreigabe: Ohne ausdrückliche Bestätigung startet nichts, was Geld kostet.
+    est = _estimate_for(seconds, model, fact_check)
+    if est["paid"] and data.get("confirm_cost") is not True:
+        return jsonify(error="Bitte bestätige zuerst die voraussichtlichen Kosten.", estimate=est), 402
 
     job_id = uuid.uuid4().hex[:12]
     with jobs_lock:
-        jobs[job_id] = {"id": job_id, "status": "queued", "progress": 0,
-                        "message": "Wartet auf den Start …", "topic": topic, "seconds": seconds}
-    executor.submit(_run_job, job_id, topic, seconds)
+        jobs[job_id] = {"id": job_id, "status": "queued", "progress": 0, "message": "Wartet auf den Start …",
+                        "topic": topic, "seconds": seconds, "estimate": est}
+    executor.submit(_run_job, job_id, topic, seconds, model, fact_check)
     return jsonify(jobs[job_id]), 202
 
 
@@ -134,20 +241,18 @@ def job_status(job_id: str):
 
 @app.get("/api/videos")
 def list_videos():
-    cfg = Config()
-    files = sorted(cfg.output_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+    files = sorted(Config().output_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
     return jsonify([_video_info(p) for p in files[:24]])
 
 
 @app.get("/videos/<path:name>")
 def serve_video(name: str):
-    return send_from_directory(Config().output_dir, name,
-                               as_attachment=request.args.get("download") == "1")
+    return send_from_directory(Config().output_dir, name, as_attachment=request.args.get("download") == "1")
 
 
 @app.get("/api/settings")
 def get_settings():
-    env = {**_read_env(), **{k: os.environ.get(k, "") for k in SETTING_KEYS if os.environ.get(k)}}
+    env = {**_read_env(), **{k: os.environ[k] for k in SETTING_KEYS if os.environ.get(k)}}
     return jsonify({
         "has_anthropic_key": bool(env.get("ANTHROPIC_API_KEY")),
         "has_pexels_key": bool(env.get("PEXELS_API_KEY")),
@@ -172,15 +277,46 @@ def save_settings():
     return get_settings()
 
 
-def main():
-    url = f"http://{HOST}:{PORT}"
-    print("\n" + "=" * 56)
+# ---------------------------------------------------------------- Start
+
+def _lan_ip() -> str | None:
+    """Ermittelt die Adresse dieses Computers im WLAN (es wird dabei nichts gesendet)."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("10.255.255.255", 1))
+            ip = s.getsockname()[0]
+            return None if ip.startswith("127.") else ip
+    except OSError:
+        return None
+
+
+def _print_banner():
+    print("\n" + "=" * 60)
     print("  🎬 TikTok-KI-Generator läuft!")
-    print(f"  Öffne im Browser:  {url}")
-    print("  Zum Beenden dieses Fenster schließen (oder Strg+C).")
-    print("=" * 56 + "\n")
+    print(f"  Am Computer:   http://127.0.0.1:{PORT}")
+    ip = _lan_ip() if PHONE_ACCESS else None
+    if ip:
+        phone = f"http://{ip}:{PORT}"
+        print(f"  Am iPhone:     {phone}   (im selben WLAN)")
+        print(f"  Zugangscode:   {ACCESS_CODE}")
+        print("\n  📱 Scanne diesen QR-Code mit der iPhone-Kamera:\n")
+        try:
+            import qrcode
+            qr = qrcode.QRCode(border=1)
+            qr.add_data(f"{phone}/?code={ACCESS_CODE}")
+            qr.print_ascii(invert=True)
+        except Exception:
+            print("  (QR-Code nicht verfügbar – Adresse oben in Safari eintippen)")
+    elif PHONE_ACCESS:
+        print("  📱 Kein WLAN gefunden – iPhone-Zugriff erst möglich, wenn der Computer im WLAN ist.")
+    print("\n  Zum Beenden dieses Fenster schließen (oder Strg+C).")
+    print("=" * 60 + "\n")
+
+
+def main():
+    _print_banner()
     if os.getenv("NO_BROWSER") != "1":
-        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{PORT}")).start()
     logging.getLogger("werkzeug").setLevel(logging.ERROR)  # keine technischen Meldungen im Fenster
     app.run(host=HOST, port=PORT, debug=False, threaded=True)
 

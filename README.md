@@ -1,153 +1,166 @@
-# 🎬 TikTok-KI-Generator
+# 🎬 KI-Faktenvideos für TikTok
 
-Erstellt automatisch TikTok-Kurzvideos (9:16, 30–60 Sekunden) aus:
+Du gibst nur eine Frage ein – zum Beispiel
+**„Was würde passieren, wenn die Erde 5 Sekunden aufhört, sich zu drehen?“** – und bekommst ein
+fertiges 9:16-MP4 (30–60 s), bedienbar direkt vom **iPhone**.
 
-| Baustein | Werkzeug | Kosten |
+| Baustein | So wird es gemacht | Kosten |
 |---|---|---|
-| ✍️ Geschichte | Claude (Anthropic API) | ein paar Cent pro Video |
-| 🖼️ Bilder / Videoclips | Pexels API | kostenlos |
-| 🗣️ KI-Stimme | Microsoft Edge TTS (`edge-tts`) | kostenlos |
-| 🎵 Hintergrundmusik | deine eigenen MP3s | kostenlos (lizenzfreie Musik) |
-| 💬 Animierte Untertitel | Pillow + MoviePy | kostenlos |
+| 🔎 Recherche & Faktencheck | Claude sucht im Web, prüft Zahlen, sammelt Quellen | ┐ |
+| ✍️ Skript mit starkem Hook | Claude schreibt nur aus den geprüften Fakten: Hook → Spannung → Wendung → Pointe | ┘ ca. 0,20–0,50 $ |
+| 🗣️ Natürliche deutsche KI-Stimme | Microsoft „Florian/Seraphina Multilingual“, Hook langsamer gesprochen | 0 $ |
+| 🎥 Bewegte Videoszenen | Testmodus: Hochkant-Stockvideos (Pexels) + Kamerafahrten · später optional KI-Videomodelle 🔒 | 0 $ |
+| ✂️ Dynamischer Schnitt | kurze Einstellungen (≤ 3 s), Zoom-Schläge, Schwenks, Lichtblitz + Wackeln bei Schock-Momenten | 0 $ |
+| 💬 Wortgenaue Untertitel | aktuelles Wort gelb, Schlüsselwort pink, „Pop“-Animation, Hook-Titel oben | 0 $ |
+| 🔊 Soundeffekte | Whoosh, Impact, Boom, Riser, Tick – selbst erzeugt, ohne Lizenzprobleme | 0 $ |
+| 🎵 Musik | eigene MP3s oder automatisch erzeugter Doku-Klangteppich | 0 $ |
 
-```
-Thema ──► ① Geschichte (Claude) ──► ② Stimme + Wortzeiten (edge-tts)
-                                        │
-          ③ Bilder/Videos (Pexels) ◄────┘
-                    │
-                    ▼
-   ④ Untertitel + ⑤ Musik + ⑥ Zusammenschnitt (MoviePy) ──► output/video.mp4
-```
+**Kostenschutz:** Die App zeigt vor jedem Video die voraussichtlichen Kosten an. Wenn etwas Geld
+kostet, startet sie erst, nachdem du ausdrücklich zugestimmt hast – auch der Server prüft das.
+Kostenpflichtige KI-Videomodelle sind sichtbar, aber gesperrt (🔒), bis du sie freigibst.
+Es wird **nichts automatisch veröffentlicht**. Du lädst das Video selbst bei TikTok hoch.
+
+👉 Vergleich der KI-Videomodelle mit Kosten pro Video: [docs/KI-VIDEOMODELLE.md](docs/KI-VIDEOMODELLE.md)
 
 ---
 
-## 🚀 So startest du das Programm (ohne Python-Befehle)
+## 🚀 Starten (ohne Python-Befehle)
 
 ### 1. Einmalig: Python installieren
 
-- **Windows:** <https://www.python.org/downloads/> → „Download Python“ → Installer öffnen →
-  **unbedingt das Häkchen „Add python.exe to PATH“ setzen** → „Install Now“.
-- **macOS:** <https://www.python.org/downloads/> → Installer herunterladen und durchklicken.
-- **Linux:** meist schon vorhanden (sonst `sudo apt install python3 python3-venv`).
+- **Windows:** <https://www.python.org/downloads/> → Installer öffnen → **Häkchen „Add python.exe to PATH“** → „Install Now“.
+- **macOS:** <https://www.python.org/downloads/> → Installer durchklicken.
 
-FFmpeg musst du **nicht** extra installieren – es wird automatisch mitgeliefert.
+FFmpeg musst du nicht extra installieren, es wird automatisch mitgeliefert.
 
 ### 2. Einmalig: Projekt herunterladen
 
-Auf der GitHub-Seite des Projekts: grüner Knopf **„Code“ → „Download ZIP“** → ZIP entpacken
-(z. B. in „Dokumente“). Wichtig: richtigen Branch auswählen, falls er noch nicht in `main` ist.
+Auf GitHub den richtigen Branch wählen → grüner Knopf **„Code“ → „Download ZIP“** → entpacken.
 
-### 3. Starten – jedes Mal
+### 3. Auf dem Computer starten
 
-| System | Was du tust |
+| System | So startest du |
 |---|---|
-| **Windows** | Im Projektordner **Doppelklick auf `start.bat`** |
-| **macOS** | **Rechtsklick auf `start.command` → „Öffnen“** (beim ersten Mal, wegen der Sicherheitsabfrage; danach reicht Doppelklick) |
-| **Linux** | Doppelklick auf `start.sh` (bzw. im Terminal `./start.sh`) |
+| **Windows** | Doppelklick auf **`start.bat`** |
+| **macOS** | beim ersten Mal **Rechtsklick auf `start.command` → „Öffnen“**, danach reicht ein Doppelklick |
+| **Linux** | `start.sh` |
 
-- Beim **ersten Start** werden alle Pakete automatisch installiert – das dauert 1–3 Minuten.
-  Danach startet das Programm in wenigen Sekunden.
-- Es öffnet sich ein schwarzes Fenster und **der Browser öffnet sich automatisch** mit
-  **<http://127.0.0.1:8765>**. Falls nicht: diese Adresse selbst in den Browser eingeben.
-- Das schwarze Fenster muss offen bleiben, solange du das Programm nutzt.
-  **Beenden:** Fenster schließen (oder darin `Strg + C` drücken).
+Beim ersten Start wird alles automatisch installiert. Das dauert 1–3 Minuten.
+Fragt Windows oder macOS, ob **eingehende Verbindungen** erlaubt werden sollen, klicke auf
+**„Zulassen“** (nur „Private Netzwerke“). Sonst kann das iPhone den Computer nicht erreichen.
 
-### 4. Video erstellen
+Danach siehst du ein schwarzes Fenster mit Adresse, **Zugangscode** und **QR-Code**. Das Fenster muss offen bleiben,
+solange du die App nutzt. Der Computer muss eingeschaltet bleiben, denn dort wird das Video berechnet.
 
-1. **Videothema** eingeben (oder einen der Vorschläge anklicken).
-2. **Länge** mit dem Schieberegler wählen (30–60 Sekunden).
-3. **„✨ Video erstellen“** klicken.
-4. Der Fortschrittsbalken zeigt jeden Schritt: Geschichte → Stimme → Bilder → Rendern.
-   Ein Video dauert je nach Computer ca. **1–3 Minuten**.
-5. Danach kannst du das Video **direkt ansehen**, mit **„⬇️ MP4 herunterladen“** speichern und
-   die **Beschreibung mit Hashtags kopieren**. Unter „Meine Videos“ findest du alle bisherigen Videos.
+### 4. Vom iPhone steuern 📱
 
-Die Videos liegen außerdem im Ordner `output/`.
+1. iPhone und Computer müssen **im selben WLAN** sein.
+2. **iPhone-Kamera öffnen** und auf den QR-Code im schwarzen Fenster halten → Link antippen.
+   Du bist dann automatisch angemeldet. Alternativ die angezeigte Adresse (z. B. `http://192.168.1.23:8765`)
+   in Safari eintippen und den 6-stelligen Zugangscode eingeben.
+3. **Als App auf den Home-Bildschirm legen:** In Safari unten auf **Teilen** (□↑) →
+   **„Zum Home-Bildschirm“**. Danach startest du die App mit einem Tipp auf das Symbol.
 
-### 5. Einmalig: Schlüssel eintragen (für echte KI-Geschichten und passende Bilder)
+### 5. Video erstellen
 
-Ohne Schlüssel läuft das Programm im **Demo-Modus** (Beispielgeschichte + Farbverläufe).
-Klicke oben rechts auf **„⚙️ Einstellungen“** und trage ein:
+1. Frage eingeben oder einen Vorschlag antippen.
+2. Länge wählen (30–60 s).
+3. „Faktencheck mit Websuche“ an lassen (empfohlen).
+4. Videoszenen: **Testmodus** (kostenlos).
+5. Kosten prüfen und bei Bedarf **Zustimmung anhaken**.
+6. **„✨ Video erstellen“** antippen. Der Fortschritt wird live angezeigt.
+   Du kannst das iPhone dabei sperren: Beim Öffnen läuft die Anzeige weiter.
+7. Fertig: Video ansehen, **„⬇️ MP4 herunterladen“**, Beschreibung mit Hashtags kopieren, Quellen ansehen.
 
-- **Claude-API-Schlüssel:** Konto auf <https://console.anthropic.com> → „API Keys“ → „Create Key“
-  (ein paar Euro Guthaben aufladen – ein Video kostet nur wenige Cent).
-- **Pexels-API-Schlüssel:** kostenlos auf <https://www.pexels.com/api/>.
-- **Stimme:** männlich/weiblich auswählen.
+**Video in die Fotos-App speichern:** Nach dem Herunterladen die **Dateien-App** öffnen →
+„Downloads“ → Video öffnen → **Teilen → „Video sichern“**. Dann kannst du es in TikTok hochladen.
 
-Die Schlüssel werden nur lokal in der Datei `.env` im Projektordner gespeichert (nicht auf GitHub).
+### 6. Einmalig: Schlüssel eintragen (⚙️ Einstellungen, geht auch vom iPhone)
 
-### 6. Optional: Musik
+| Schlüssel | Wofür | Woher | Kosten |
+|---|---|---|---|
+| **Claude** | Recherche, Faktencheck, Skript zu deinem Thema | <https://console.anthropic.com> → API Keys | ca. 0,20–0,50 $ pro Video |
+| **Pexels** | echte, bewegte Hochkant-Videos | <https://www.pexels.com/api/> | kostenlos |
 
-Lege lizenzfreie MP3-Dateien in den Ordner `assets/music/` (z. B. aus der YouTube Audio Library
-oder von Pixabay Music). Pro Video wird zufällig ein Titel gewählt, leise gemischt und ausgeblendet.
+Ohne Claude-Schlüssel läuft ein **kostenloser Testmodus** mit einem fertigen Demo-Skript (Erdrotation).
+Die Schlüssel werden nur lokal in der Datei `.env` gespeichert, nie auf GitHub.
+
+**Tipp:** Lege in der Anthropic-Konsole ein **monatliches Ausgabelimit** fest (z. B. 5 $). Dann können nie
+höhere Kosten entstehen.
+
+### 7. Optional: eigene Musik
+
+Lizenzfreie MP3s in den Ordner `assets/music/` legen. Ohne eigene Musik erzeugt das Programm einen
+spannungsvollen Doku-Klangteppich.
 
 ---
 
-## 🛠️ Anpassen für Fortgeschrittene
+## 🔐 Sicherheit
 
-Alle Einstellungen stehen in `tiktok_generator/config.py`:
-
-| Was? | Einstellung |
-|---|---|
-| Schriftgröße / Position der Untertitel | `font_size`, `caption_y` |
-| Wörter pro Untertitel | `words_per_caption` |
-| Eigene Schriftart | `.ttf`-Datei in `assets/fonts/` legen |
-| Sprechtempo | `TTS_RATE` in `.env`, z. B. `+15%` |
-| Musiklautstärke | `MUSIC_VOLUME` in `.env` |
-| Stil der Geschichten | `SYSTEM_PROMPT` in `tiktok_generator/story.py` |
-| Anderer Port | `PORT=9000` in `.env` |
-
-Kommandozeile (optional, im aktivierten `.venv`):
-`python main.py "Thema" --seconds 45 --count 3`
-
-### Ideen für später
-
-- [ ] KI-generierte Bilder statt Stock-Fotos
-- [ ] Übergänge zwischen den Szenen (Überblenden)
-- [ ] Hook-Text groß oben in den ersten 3 Sekunden
-- [ ] Mehrere Themen auf einmal aus einer Liste
-- [ ] Automatisch jeden Tag ein Video erzeugen
+- Vom iPhone aus kommt nur hinein, wer den **Zugangscode** kennt (steht in `.env` als `ACCESS_CODE`).
+  Am Computer selbst wird kein Code benötigt.
+- Die App ist nur in deinem **eigenen WLAN** erreichbar, nicht im Internet.
+- In fremden WLANs (Café, Hotel) solltest du den iPhone-Zugriff abschalten: `PHONE_ACCESS=0` in `.env`.
+- Neuen Code erzeugen: Zeile `ACCESS_CODE=…` aus `.env` löschen und neu starten.
+- **Unterwegs (außerhalb des WLANs):** möglich mit der kostenlosen App *Tailscale* auf Computer und iPhone.
+  Das ist noch nicht eingebaut, auf Wunsch richten wir es gemeinsam ein.
 
 ---
-
-## 📁 Aufbau des Projekts
-
-```
-start.bat / start.command / start.sh  ← Doppelklick zum Starten
-app.py                     ← Webserver (Browser-Oberfläche)
-templates/index.html       ← Aussehen der Oberfläche
-main.py                    ← Kommandozeilen-Version (optional)
-tiktok_generator/
-  pipeline.py              ← steuert die 6 Schritte + Fortschritt
-  config.py                ← alle Einstellungen
-  story.py                 ← ① Geschichte mit Claude
-  voice.py                 ← ② KI-Stimme + Wortzeitstempel
-  media.py                 ← ③ Pexels-Videos/-Bilder (oder Farbverlauf)
-  subtitles.py             ← ④ animierte Untertitel
-  music.py                 ← ⑤ Hintergrundmusik
-  video.py                 ← ⑥ Zusammenschnitt
-assets/music/              ← deine MP3s
-assets/fonts/              ← optionale eigene Schriftarten
-output/                    ← fertige Videos
-```
 
 ## 🛟 Häufige Probleme
 
 | Problem | Lösung |
 |---|---|
-| „Python wurde nicht gefunden“ | Python installieren, bei Windows das Häkchen „Add to PATH“ setzen, dann neu starten |
-| macOS: „kann nicht geöffnet werden“ | Rechtsklick auf `start.command` → „Öffnen“ → „Öffnen“ bestätigen |
-| macOS: „keine Berechtigung“ | Terminal im Ordner öffnen und einmal `chmod +x start.command start.sh` eingeben |
-| Browser öffnet sich nicht | <http://127.0.0.1:8765> selbst eingeben |
-| „Address already in use“ | Das Programm läuft schon in einem anderen Fenster – das andere schließen |
-| Installation schlägt fehl | Internetverbindung prüfen; Ordner `.venv` löschen und neu starten |
-| Video ohne Ton | keine Verbindung zum Microsoft-Sprachdienst – Internet prüfen |
-| Fehlermeldung „Schlüssel ungültig“ | in den Einstellungen den Claude-Schlüssel neu eintragen |
-| Video zu kurz/lang | `TTS_RATE` in `.env` ändern; im Demo-Modus ist die Länge nur ungefähr |
-| Nur Farbverläufe | `PEXELS_API_KEY` fehlt oder ist falsch |
+| „Python wurde nicht gefunden“ | Python installieren (Häkchen „Add to PATH“), dann neu starten |
+| macOS: „kann nicht geöffnet werden“ | Rechtsklick auf `start.command` → „Öffnen“ → „Öffnen“ |
+| iPhone: Seite lädt nicht | gleiches WLAN? Firewall-Abfrage mit „Zulassen“ beantwortet? Fenster noch offen? |
+| iPhone: „Zugangscode fehlt“ | QR-Code erneut scannen oder Code aus dem schwarzen Fenster eingeben |
+| „Address already in use“ | Die App läuft schon in einem anderen Fenster – das andere schließen |
+| Video ohne Stimme | Internetverbindung des Computers prüfen (die Stimme kommt von Microsoft) |
+| Nur generierte Hintergründe | Pexels-Schlüssel in den Einstellungen eintragen |
+| „Schlüssel ungültig“ | Claude-Schlüssel in den Einstellungen neu eintragen |
+| Installation schlägt fehl | Internet prüfen, Ordner `.venv` löschen, neu starten |
+
+---
+
+## 🛠️ Für Fortgeschrittene
+
+| Was | Wo |
+|---|---|
+| Untertitel-Größe/Position | `font_size`, `caption_y` in `tiktok_generator/config.py` |
+| Tempo des Schnitts | `MAX_CUT_SECONDS` in `tiktok_generator/video.py` |
+| Helligkeit der Szenen | `DARKEN` in `tiktok_generator/video.py` |
+| Sprechtempo / Stimme | `TTS_RATE`, `TTS_VOICE` in `.env` |
+| Stil der Skripte | `SCRIPT_SYSTEM` / `RESEARCH_SYSTEM` in `tiktok_generator/story.py` |
+| Preise / Modelle | `tiktok_generator/costs.py` |
+| Port | `PORT=9000` in `.env` |
+
+Kommandozeile (optional): `python main.py "Frage" --seconds 45` (`--no-factcheck`, `--demo`)
+
+### Projektaufbau
+
+```
+start.bat / start.command / start.sh   ← Doppelklick zum Starten
+app.py                     ← Webserver, iPhone-Zugang, Kostenfreigabe
+templates/                 ← Oberfläche (index.html, login.html)
+static/                    ← App-Symbol fürs iPhone
+docs/KI-VIDEOMODELLE.md    ← Modellvergleich & Kosten
+tiktok_generator/
+  pipeline.py              ← steuert alle Schritte + Fortschritt
+  story.py                 ← ① Recherche, Faktencheck, Skript (Claude)
+  voice.py                 ← ② KI-Stimme + Wortzeitstempel
+  visuals.py               ← ③ Bildquelle (Stock jetzt, KI-Videomodelle später)
+  media.py                 ←    Pexels-Suche / generierte Hintergründe
+  video.py                 ← ④ dynamischer Schnitt, Hook-Titel, Export
+  subtitles.py             ← ⑤ wortgenaue animierte Untertitel
+  sfx.py                   ← ⑥ Soundeffekte + Doku-Musik
+  music.py                 ←    eigene Musik
+  costs.py                 ←    Preiskatalog & Kostenschätzung
+```
 
 ## ⚖️ Hinweise
 
-- Nutze nur Musik und Material, für das du die Rechte hast. Pexels-Inhalte sind frei nutzbar.
-- TikTok verlangt, dass KI-generierte Inhalte als solche gekennzeichnet werden
-  (beim Hochladen „KI-generierter Inhalt“ aktivieren).
+- TikTok verlangt, dass KI-generierte Inhalte gekennzeichnet werden. Beim Hochladen „KI-generierter Inhalt“ aktivieren.
+- Die Quellen werden in der App angezeigt. Prüfe vor dem Veröffentlichen kurz, ob die Aussagen stimmen.
+  Ein automatischer Faktencheck ist sehr gut, aber nicht unfehlbar.
+- Nutze nur Musik, für die du die Rechte hast. Pexels-Videos sind frei nutzbar.

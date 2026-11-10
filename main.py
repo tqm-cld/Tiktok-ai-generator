@@ -15,12 +15,13 @@ from tiktok_generator.story import StoryError
 
 def main():
     parser = argparse.ArgumentParser(description="Erstellt automatisch TikTok-Kurzvideos mit KI.")
-    parser.add_argument("topic", nargs="?", default="Eine mysteriöse Kurzgeschichte mit überraschendem Ende",
+    parser.add_argument("topic", nargs="?", default="Was würde passieren, wenn die Erde 5 Sekunden aufhört, sich zu drehen?",
                         help="Worum soll die Geschichte gehen?")
     parser.add_argument("--seconds", type=int, default=45, help="Gewünschte Länge (30-60 Sekunden)")
     parser.add_argument("--count", type=int, default=1, help="Wie viele Videos erstellt werden sollen")
     parser.add_argument("--demo", action="store_true", help="Demo-Geschichte verwenden (kein API-Schlüssel nötig)")
-    parser.add_argument("--voice", help="Andere Stimme, z.B. de-DE-KatjaNeural")
+    parser.add_argument("--voice", help="Andere Stimme, z.B. de-DE-SeraphinaMultilingualNeural")
+    parser.add_argument("--no-factcheck", action="store_true", help="Ohne Websuche/Faktencheck (günstiger)")
     args = parser.parse_args()
 
     cfg = Config()
@@ -32,7 +33,8 @@ def main():
         if args.count > 1:
             print(f"\n===== Video {n + 1} von {args.count} =====")
         try:
-            result = make_video(args.topic, cfg, seconds=seconds, demo=args.demo)
+            result = make_video(args.topic, cfg, seconds=seconds, demo=args.demo,
+                                fact_check=not args.no_factcheck)
         except StoryError as e:
             raise SystemExit(str(e))
         print(f"\n✅ Fertig: {result.video_path}  ({result.duration:.0f} s)")
