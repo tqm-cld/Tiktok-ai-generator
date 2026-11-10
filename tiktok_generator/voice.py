@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import edge_tts
+import imageio_ffmpeg  # liefert FFmpeg mit, keine extra Installation nötig
 
 from .config import Config
 
@@ -26,6 +27,7 @@ class VoiceClip:
     path: Path
     duration: float
     words: list[Word]
+    silent: bool = False  # True = Ersatz ohne Ton (Stimme nicht erreichbar)
 
 
 async def _speak(text: str, voice: str, rate: str, out_path: Path) -> list[Word]:
@@ -58,12 +60,12 @@ def _silent_fallback(text: str, out_path: Path) -> VoiceClip:
     duration = max(1.0, len(tokens) * per_word + 0.3)
     out_path = out_path.with_suffix(".wav")
     subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+        [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
          "anullsrc=r=24000:cl=mono", "-t", f"{duration:.2f}", str(out_path)],
         check=True,
     )
     words = [Word(t, i * per_word, (i + 1) * per_word) for i, t in enumerate(tokens)]
-    return VoiceClip(out_path, duration, words)
+    return VoiceClip(out_path, duration, words, silent=True)
 
 
 def synthesize(text: str, out_path: Path, cfg: Config) -> VoiceClip:

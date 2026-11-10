@@ -66,7 +66,9 @@ def background_for_scene(media: Path, duration: float, cfg: Config):
     return VideoClip(zoom_frame, duration=duration)
 
 
-def build_video(voice_clips: list[VoiceClip], media_files: list[Path], out_path: Path, cfg: Config) -> Path:
+def build_video(voice_clips: list[VoiceClip], media_files: list[Path], out_path: Path, cfg: Config,
+                logger="bar") -> Path:
+    """Setzt das Video zusammen. `logger` kann den Render-Fortschritt empfangen."""
     backgrounds, audios, all_words = [], [], []
     t = 0.0
     for voice, media in zip(voice_clips, media_files):
@@ -109,6 +111,8 @@ def build_video(voice_clips: list[VoiceClip], media_files: list[Path], out_path:
         threads=4,
         temp_audiofile=str(out_path.with_suffix(".temp.m4a")),
         ffmpeg_params=["-pix_fmt", "yuv420p"],  # damit es auf allen Handys abspielt
+        logger=logger,
     )
+    video.close()
     return out_path
 

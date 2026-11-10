@@ -21,76 +21,69 @@ Thema ──► ① Geschichte (Claude) ──► ② Stimme + Wortzeiten (edge-
 
 ---
 
-## 🗺️ Der Schritt-für-Schritt-Plan
+## 🚀 So startest du das Programm (ohne Python-Befehle)
 
-Wir bauen das Programm in kleinen Etappen. Jede Etappe ist für sich testbar.
+### 1. Einmalig: Python installieren
 
-### Etappe 0 – Werkzeuge installieren (einmalig)
+- **Windows:** <https://www.python.org/downloads/> → „Download Python“ → Installer öffnen →
+  **unbedingt das Häkchen „Add python.exe to PATH“ setzen** → „Install Now“.
+- **macOS:** <https://www.python.org/downloads/> → Installer herunterladen und durchklicken.
+- **Linux:** meist schon vorhanden (sonst `sudo apt install python3 python3-venv`).
 
-1. **Python 3.10 oder neuer** installieren: <https://www.python.org/downloads/>
-   (Windows: beim Installieren das Häkchen **„Add Python to PATH“** setzen.)
-2. **FFmpeg** installieren (für Video/Audio):
-   - Windows: `winget install ffmpeg`
-   - macOS: `brew install ffmpeg`
-   - Linux: `sudo apt install ffmpeg`
-3. **Git** installieren (optional, zum Herunterladen des Projekts): <https://git-scm.com>
-4. Einen Code-Editor, z. B. **VS Code**: <https://code.visualstudio.com>
+FFmpeg musst du **nicht** extra installieren – es wird automatisch mitgeliefert.
 
-Test im Terminal: `python --version` und `ffmpeg -version` sollten eine Versionsnummer zeigen.
+### 2. Einmalig: Projekt herunterladen
 
-### Etappe 1 – Projekt einrichten
+Auf der GitHub-Seite des Projekts: grüner Knopf **„Code“ → „Download ZIP“** → ZIP entpacken
+(z. B. in „Dokumente“). Wichtig: richtigen Branch auswählen, falls er noch nicht in `main` ist.
 
-```bash
-git clone <URL-dieses-Repos>
-cd Tiktok-ai-generator
+### 3. Starten – jedes Mal
 
-# Eine "virtuelle Umgebung" hält die Pakete dieses Projekts getrennt vom Rest des PCs
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
+| System | Was du tust |
+|---|---|
+| **Windows** | Im Projektordner **Doppelklick auf `start.bat`** |
+| **macOS** | **Rechtsklick auf `start.command` → „Öffnen“** (beim ersten Mal, wegen der Sicherheitsabfrage; danach reicht Doppelklick) |
+| **Linux** | Doppelklick auf `start.sh` (bzw. im Terminal `./start.sh`) |
 
-pip install -r requirements.txt
-```
+- Beim **ersten Start** werden alle Pakete automatisch installiert – das dauert 1–3 Minuten.
+  Danach startet das Programm in wenigen Sekunden.
+- Es öffnet sich ein schwarzes Fenster und **der Browser öffnet sich automatisch** mit
+  **<http://127.0.0.1:8765>**. Falls nicht: diese Adresse selbst in den Browser eingeben.
+- Das schwarze Fenster muss offen bleiben, solange du das Programm nutzt.
+  **Beenden:** Fenster schließen (oder darin `Strg + C` drücken).
 
-### Etappe 2 – Erster Test im Demo-Modus (ohne Schlüssel)
+### 4. Video erstellen
 
-```bash
-python main.py --demo
-```
+1. **Videothema** eingeben (oder einen der Vorschläge anklicken).
+2. **Länge** mit dem Schieberegler wählen (30–60 Sekunden).
+3. **„✨ Video erstellen“** klicken.
+4. Der Fortschrittsbalken zeigt jeden Schritt: Geschichte → Stimme → Bilder → Rendern.
+   Ein Video dauert je nach Computer ca. **1–3 Minuten**.
+5. Danach kannst du das Video **direkt ansehen**, mit **„⬇️ MP4 herunterladen“** speichern und
+   die **Beschreibung mit Hashtags kopieren**. Unter „Meine Videos“ findest du alle bisherigen Videos.
 
-Das erzeugt ein Video mit einer fest eingebauten Beispielgeschichte, echter KI-Stimme
-und Farbverläufen als Hintergrund. Ergebnis: `output/…mp4`.
-👉 Wenn das klappt, funktioniert die ganze Technik schon!
+Die Videos liegen außerdem im Ordner `output/`.
 
-### Etappe 3 – API-Schlüssel eintragen
+### 5. Einmalig: Schlüssel eintragen (für echte KI-Geschichten und passende Bilder)
 
-1. Datei `.env.example` kopieren und in `.env` umbenennen.
-2. **Claude-Schlüssel**: Konto auf <https://console.anthropic.com> anlegen → „API Keys“ → Schlüssel erstellen → bei `ANTHROPIC_API_KEY=` eintragen. (Ein paar Euro Guthaben aufladen.)
-3. **Pexels-Schlüssel** (kostenlos): <https://www.pexels.com/api/> → bei `PEXELS_API_KEY=` eintragen.
+Ohne Schlüssel läuft das Programm im **Demo-Modus** (Beispielgeschichte + Farbverläufe).
+Klicke oben rechts auf **„⚙️ Einstellungen“** und trage ein:
 
-> ⚠️ Die Datei `.env` niemals hochladen oder teilen – sie ist schon in `.gitignore` eingetragen.
+- **Claude-API-Schlüssel:** Konto auf <https://console.anthropic.com> → „API Keys“ → „Create Key“
+  (ein paar Euro Guthaben aufladen – ein Video kostet nur wenige Cent).
+- **Pexels-API-Schlüssel:** kostenlos auf <https://www.pexels.com/api/>.
+- **Stimme:** männlich/weiblich auswählen.
 
-### Etappe 4 – Musik hinzufügen
+Die Schlüssel werden nur lokal in der Datei `.env` im Projektordner gespeichert (nicht auf GitHub).
 
-Lege 2–5 lizenzfreie MP3s in `assets/music/` (z. B. von der YouTube Audio Library oder Pixabay Music).
-Das Programm wählt pro Video zufällig einen Titel, macht ihn leise und blendet ihn aus.
+### 6. Optional: Musik
 
-### Etappe 5 – Echte Videos erzeugen
+Lege lizenzfreie MP3-Dateien in den Ordner `assets/music/` (z. B. aus der YouTube Audio Library
+oder von Pixabay Music). Pro Video wird zufällig ein Titel gewählt, leise gemischt und ausgeblendet.
 
-```bash
-python main.py "Eine gruselige Geschichte über einen verlassenen Leuchtturm"
-python main.py "Ein unglaublicher Fakt über das Weltall" --count 3
-python main.py "Motivationsgeschichte über einen Marathonläufer" --voice de-DE-KatjaNeural
-```
+---
 
-Pro Video entstehen im Ordner `output/`:
-- `…mp4` – das fertige Video
-- `…txt` – Titel + Hashtags zum Kopieren in TikTok
-- `…json` – die komplette Geschichte (zum Nachlesen)
-
-### Etappe 6 – Anpassen & verbessern (deine Spielwiese)
+## 🛠️ Anpassen für Fortgeschrittene
 
 Alle Einstellungen stehen in `tiktok_generator/config.py`:
 
@@ -99,25 +92,33 @@ Alle Einstellungen stehen in `tiktok_generator/config.py`:
 | Schriftgröße / Position der Untertitel | `font_size`, `caption_y` |
 | Wörter pro Untertitel | `words_per_caption` |
 | Eigene Schriftart | `.ttf`-Datei in `assets/fonts/` legen |
-| Stimme / Tempo | `TTS_VOICE`, `TTS_RATE` in `.env` (alle Stimmen: `edge-tts --list-voices`) |
+| Sprechtempo | `TTS_RATE` in `.env`, z. B. `+15%` |
 | Musiklautstärke | `MUSIC_VOLUME` in `.env` |
 | Stil der Geschichten | `SYSTEM_PROMPT` in `tiktok_generator/story.py` |
+| Anderer Port | `PORT=9000` in `.env` |
 
-### Etappe 7 – Ideen für später
+Kommandozeile (optional, im aktivierten `.venv`):
+`python main.py "Thema" --seconds 45 --count 3`
 
-- [ ] KI-generierte Bilder statt Stock-Fotos (z. B. über eine Bild-API)
+### Ideen für später
+
+- [ ] KI-generierte Bilder statt Stock-Fotos
 - [ ] Übergänge zwischen den Szenen (Überblenden)
 - [ ] Hook-Text groß oben in den ersten 3 Sekunden
-- [ ] Liste von Themen aus einer Datei abarbeiten (Batch-Modus)
-- [ ] Automatisch zeitgesteuert jeden Tag ein Video erzeugen
+- [ ] Mehrere Themen auf einmal aus einer Liste
+- [ ] Automatisch jeden Tag ein Video erzeugen
 
 ---
 
 ## 📁 Aufbau des Projekts
 
 ```
-main.py                    ← Startpunkt: steuert die 6 Schritte
+start.bat / start.command / start.sh  ← Doppelklick zum Starten
+app.py                     ← Webserver (Browser-Oberfläche)
+templates/index.html       ← Aussehen der Oberfläche
+main.py                    ← Kommandozeilen-Version (optional)
 tiktok_generator/
+  pipeline.py              ← steuert die 6 Schritte + Fortschritt
   config.py                ← alle Einstellungen
   story.py                 ← ① Geschichte mit Claude
   voice.py                 ← ② KI-Stimme + Wortzeitstempel
@@ -134,10 +135,15 @@ output/                    ← fertige Videos
 
 | Problem | Lösung |
 |---|---|
-| `ffmpeg not found` | FFmpeg installieren (Etappe 0) und Terminal neu öffnen |
-| `ModuleNotFoundError` | virtuelle Umgebung aktivieren und `pip install -r requirements.txt` |
-| „stummer Testmodus“ | keine Internetverbindung zu Microsoft TTS – Internet prüfen |
-| Video zu kurz/lang | Thema genauer formulieren oder `TTS_RATE` ändern |
+| „Python wurde nicht gefunden“ | Python installieren, bei Windows das Häkchen „Add to PATH“ setzen, dann neu starten |
+| macOS: „kann nicht geöffnet werden“ | Rechtsklick auf `start.command` → „Öffnen“ → „Öffnen“ bestätigen |
+| macOS: „keine Berechtigung“ | Terminal im Ordner öffnen und einmal `chmod +x start.command start.sh` eingeben |
+| Browser öffnet sich nicht | <http://127.0.0.1:8765> selbst eingeben |
+| „Address already in use“ | Das Programm läuft schon in einem anderen Fenster – das andere schließen |
+| Installation schlägt fehl | Internetverbindung prüfen; Ordner `.venv` löschen und neu starten |
+| Video ohne Ton | keine Verbindung zum Microsoft-Sprachdienst – Internet prüfen |
+| Fehlermeldung „Schlüssel ungültig“ | in den Einstellungen den Claude-Schlüssel neu eintragen |
+| Video zu kurz/lang | `TTS_RATE` in `.env` ändern; im Demo-Modus ist die Länge nur ungefähr |
 | Nur Farbverläufe | `PEXELS_API_KEY` fehlt oder ist falsch |
 
 ## ⚖️ Hinweise

@@ -10,6 +10,10 @@ from pydantic import BaseModel, Field
 from .config import Config
 
 
+class StoryError(RuntimeError):
+    """Verständliche Fehlermeldung, wenn die Geschichte nicht erstellt werden konnte."""
+
+
 class Scene(BaseModel):
     text: str = Field(description="Gesprochener Text dieser Szene (1-3 kurze Sätze)")
     visual_query: str = Field(
@@ -32,11 +36,10 @@ Regeln:
 - Der erste Satz ist ein starker Hook, der sofort neugierig macht.
 - Kurze, gesprochene Sätze, keine Emojis, keine Regieanweisungen.
 - Ein überraschendes Ende oder eine Pointe.
-- Teile die Geschichte in 6 bis 10 Szenen auf.
 - visual_query ist immer auf Englisch und beschreibt ein einfaches, filmbares Motiv."""
 
 
-def generate_story(topic: str, cfg: Config) -> Story:
+def generate_story(topic: str, cfg: Config, seconds: int | None = None) -> Story:
     """Erzeugt eine Geschichte. Ohne API-Schlüssel gibt es eine Demo-Geschichte."""
     if not cfg.anthropic_api_key:
         print("  ⚠ Kein ANTHROPIC_API_KEY gefunden → Demo-Geschichte wird verwendet.")
@@ -45,15 +48,21 @@ def generate_story(topic: str, cfg: Config) -> Story:
     import anthropic
 
     client = anthropic.Anthropic(api_key=cfg.anthropic_api_key)
-    # ~2,5 gesprochene Wörter pro Sekunde
-    min_words = int(cfg.min_seconds * 2.5)
-    max_words = int(cfg.max_seconds * 2.3)
+    # Gewünschte Länge: entweder fest (z.B. 45 s) oder der Bereich aus der Config.
+    # Faustregel: ca. 2,3 gesprochene Wörter pro Sekunde.
+    if seconds:
+        min_words, max_words = int(seconds * 2.1), int(seconds * 2.4)
+        length_hint = f"ca. {seconds} Sekunden"
+    else:
+        min_words, max_words = int(cfg.min_seconds * 2.5), int(cfg.max_seconds * 2.3)
+        length_hint = f"{cfg.min_seconds}-{cfg.max_seconds} Sekunden"
+    scenes = max(4, min(12, round((seconds or 45) / 6)))
 
     prompt = (
         f"Thema: {topic}\n"
         f"Sprache: {cfg.language}\n"
         f"Länge: insgesamt {min_words} bis {max_words} Wörter "
-        f"(das Video soll {cfg.min_seconds}-{cfg.max_seconds} Sekunden dauern).\n"
+        f"(das Video soll {length_hint} dauern), aufgeteilt in etwa {scenes} Szenen.\n"
         "Gib außerdem 3-5 passende Hashtags ohne #-Zeichen zurück."
     )
 
@@ -71,19 +80,39 @@ def generate_story(topic: str, cfg: Config) -> Story:
             fallbacks="default",
         )
     except anthropic.AuthenticationError:
-        raise SystemExit("❌ Der ANTHROPIC_API_KEY in deiner .env-Datei ist ungültig.")
+        raise StoryError("❌ Der Claude-API-Schlüssel ist ungültig – bitte in den Einstellungen prüfen.")
     except anthropic.RateLimitError:
-        raise SystemExit("❌ Zu viele Anfragen oder kein Guthaben mehr – kurz warten oder Guthaben aufladen.")
+        raise StoryError("❌ Zu viele Anfragen oder kein Guthaben mehr – kurz warten oder Guthaben aufladen.")
     except anthropic.APIConnectionError:
-        raise SystemExit("❌ Keine Verbindung zu Claude – bitte Internetverbindung prüfen.")
+        raise StoryError("❌ Keine Verbindung zu Claude – bitte Internetverbindung prüfen.")
 
     if response.stop_reason == "refusal" or response.parsed_output is None:
-        raise RuntimeError("Claude hat zu diesem Thema keine Geschichte geschrieben. Probiere ein anderes Thema.")
+        raise StoryError("❌ Claude hat zu diesem Thema keine Geschichte geschrieben. Probiere ein anderes Thema.")
     return response.parsed_output
 
 
-def demo_story() -> Story:
-    """Eine feste Beispielgeschichte zum Testen ohne API-Schlüssel."""
+def demo_story(seconds: int | None = None) -> Story:
+    """Eine feste Beispielgeschichte zum Testen ohne API-Schlüssel.
+
+    Ist `seconds` angegeben, werden Szenen aus der Mitte weggelassen,
+    damit das Video ungefähr so lang wird (Anfang und Ende bleiben immer)."""
+    story = _full_demo_story()
+    if not seconds:
+        return story
+    max_words = seconds * 2.6
+    first, last = story.scenes[0], story.scenes[-1]
+    kept, words = [first], len(first.text.split()) + len(last.text.split())
+    for scene in story.scenes[1:-1]:
+        n = len(scene.text.split())
+        if words + n > max_words:
+            break
+        kept.append(scene)
+        words += n
+    story.scenes = kept + [last]
+    return story
+
+
+def _full_demo_story() -> Story:
     return Story(
         title="Der Leuchtturmwärter",
         hashtags=["gruselgeschichte", "storytime", "mystery"],
