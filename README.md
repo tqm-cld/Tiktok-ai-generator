@@ -34,7 +34,7 @@ Es wird **nichts automatisch veröffentlicht**. Du lädst das Video selbst bei T
 
 ## ☁️ Online nutzen – nur mit dem iPhone (empfohlen)
 
-Kostenlos bei Hugging Face Spaces, ohne Kreditkarte, Einrichtung komplett im iPhone-Safari:
+Kostenlos mit GitHub Codespaces (laut GitHub 60 Stunden pro Monat gratis), Einrichtung komplett im iPhone-Safari:
 👉 **[docs/IPHONE-HOSTING.md](docs/IPHONE-HOSTING.md)**
 
 ## 🚀 Auf dem eigenen Computer starten (ohne Python-Befehle)
@@ -170,8 +170,9 @@ app.py                     ← Webserver, iPhone-Zugang, Kostenfreigabe
 templates/                 ← Oberfläche (index.html, login.html)
 static/                    ← App-Symbol fürs iPhone
 docs/KI-VIDEOMODELLE.md    ← Modellvergleich & Kosten
-docs/IPHONE-HOSTING.md     ← Online stellen bei Hugging Face (iPhone-Anleitung)
-deploy/huggingface/        ← Bauanleitung (Dockerfile) für Hugging Face
+docs/IPHONE-HOSTING.md     ← Kostenlos online nutzen mit GitHub Codespaces (iPhone-Anleitung)
+.devcontainer/             ← Startkonfiguration für Codespaces (installiert & startet die App automatisch)
+deploy/huggingface/        ← Dockerfile für Hugging Face (nur mit kostenpflichtigem PRO-Abo)
 tiktok_generator/
   pipeline.py              ← steuert alle Schritte + Fortschritt
   story.py                 ← ① Recherche, Faktencheck, Skript (Claude)

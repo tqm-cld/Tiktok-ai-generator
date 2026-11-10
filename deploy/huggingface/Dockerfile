@@ -1,4 +1,6 @@
-# Bauanleitung für Hugging Face Spaces (Docker, kostenlose CPU-Stufe).
+# Bauanleitung für Hugging Face Spaces (Docker).
+# ACHTUNG: Seit Juli 2026 brauchen Docker-Spaces bei Hugging Face ein kostenpflichtiges PRO-Abo.
+# Kostenlose Alternative: GitHub Codespaces, siehe docs/IPHONE-HOSTING.md
 # Diese Datei wird 1:1 als "Dockerfile" in deinen Space kopiert.
 # Sie lädt die App direkt aus dem öffentlichen GitHub-Repository – du musst keine Dateien hochladen.
 FROM python:3.12-slim

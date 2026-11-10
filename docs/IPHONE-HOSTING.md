@@ -1,87 +1,76 @@
-# 📱 Die App online stellen und am iPhone nutzen (kostenlos)
+# 📱 Die App kostenlos online nutzen – nur mit dem iPhone
 
-Am Ende hast du einen **privaten Link** (z. B. `https://deinname-tiktok-generator.hf.space`). Dort gibst du einen
-Prompt ein und lädst das fertige MP4 herunter. Dein Computer muss dafür **nicht** laufen.
+**Lösung: GitHub Codespaces.** Das ist ein Rechner in der Cloud, den GitHub dir kostenlos zur Verfügung stellt.
+Dein Code liegt schon auf GitHub, du brauchst kein neues Konto.
 
-**Hosting:** [Hugging Face Spaces](https://huggingface.co/spaces), kostenlose Stufe „CPU basic“
-(2 CPU-Kerne, 16 GB RAM). Es wird **keine Kreditkarte** benötigt. Alles geht im iPhone-Safari.
+| | |
+|---|---|
+| **Kosten** | 0 $. Laut GitHub sind für private Konten **120 Kernstunden pro Monat gratis**, das sind **60 Stunden** auf dem 2-Kern-Rechner, plus 15 GB Speicher. |
+| **Reicht das?** | Ein Video braucht ca. 2–4 Minuten Rechenzeit. Bei 3 Videos am Tag und ca. 45 Minuten Laufzeit pro Tag sind das ca. 23 Stunden im Monat. |
+| **Privat?** | Ja. Deine App-Adresse funktioniert nur, wenn du bei GitHub angemeldet bist. |
+| **Einschränkung** | Der Cloud-Rechner läuft nicht dauerhaft. Du startest ihn vor der Nutzung mit einem Tipp (ca. 30–60 Sekunden). |
 
-> Die Menüs bei Hugging Face können leicht anders heißen als hier beschrieben. Sie ändern ihre Seite gelegentlich.
+> Die GitHub-Menüs können leicht anders heißen als hier beschrieben.
 
 ---
 
-## Teil 1 – Kostenloser Test (ohne Claude, ohne KI-Videos)
+## Teil A – Einmalige Einrichtung (ca. 10 Minuten)
 
-Im kostenlosen Test verwendet die App das fertige **Demo-Skript zur Erdrotation**. Dein Prompt wird also noch nicht
-umgesetzt. Getestet wird die ganze Technik: Stimme, Stockvideos, Schnitt, Untertitel, Musik, Download.
-**Kosten: 0 $.**
+### Schritt 1: Kostenschutz prüfen (1 Minute)
 
-### Schritt 1: Hugging-Face-Konto anlegen (2 Minuten)
+1. In Safari <https://github.com/settings/billing> öffnen und bei GitHub anmelden.
+2. Hier siehst du, wie viel vom Gratis-Kontingent verbraucht ist.
+3. Ist **keine Zahlungsmethode** hinterlegt, kann GitHub dir nichts berechnen: Wenn das Kontingent aufgebraucht
+   ist, stoppen Codespaces einfach. Falls du eine Karte hinterlegt hast, setze bei
+   **Budgets** für **Codespaces** ein Budget von **0 $**, mit der Option, die Nutzung beim Erreichen zu stoppen.
 
-1. In Safari <https://huggingface.co/join> öffnen.
-2. E-Mail und Passwort eingeben → Benutzername wählen → **Create account**.
-3. Die Bestätigungs-E-Mail öffnen und den Link antippen.
+### Schritt 2: Codespace anlegen (1 Minute + 3–5 Minuten Wartezeit)
 
-### Schritt 2: Space anlegen (1 Minute)
+1. In Safari diesen Link öffnen: <https://codespaces.new/tqm-cld/Tiktok-ai-generator?quickstart=1>
+2. Falls eine Auswahl erscheint:
+   - **Branch:** `claude/tiktok-ai-video-generator-m6ldsj`
+   - **Machine type:** **2-core** (nicht größer, größere Rechner verbrauchen das Kontingent schneller)
+3. **Create codespace** antippen.
+4. Ein Editor (Visual Studio Code im Browser) öffnet sich. Beim **ersten Mal** werden 3–5 Minuten lang alle Pakete
+   installiert. Danach erscheint unten im Terminal:
+   **„✅ App gestartet auf Port 8765“**.
 
-1. <https://huggingface.co/new-space> öffnen.
-2. Ausfüllen:
-   - **Space name:** `tiktok-generator`
-   - **Select the Space SDK:** **Docker** → Vorlage **Blank**
-   - **Space hardware:** **CPU basic · FREE** (nichts anderes wählen, alles andere kostet Geld)
-   - **Visibility:** **Private** (nur du kannst den Space sehen)
-3. **Create Space** antippen.
+### Schritt 3: App-Link öffnen und speichern
 
-### Schritt 3: Bauanleitung einfügen (2 Minuten)
+1. Im Editor unten den Reiter **Ports** öffnen.
+   Auf dem iPhone, falls er nicht zu sehen ist: oben links **☰** → **View/Ansicht** → **Open View…** → `Ports`.
+2. In der Zeile **„KI-Videos App (8765)“** auf das **Globus-Symbol** („Open in Browser“) tippen.
+3. Es öffnet sich deine App unter einer Adresse wie
+   `https://dein-codespace-name-8765.app.github.dev`.
+   Falls GitHub fragt, ob du den Port öffnen möchtest: **Continue** antippen.
+4. **Als App speichern:** unten **Teilen** (□↑) → **Zum Home-Bildschirm** → **Hinzufügen**.
 
-1. In einem neuen Safari-Tab diese Datei öffnen:
-   <https://raw.githubusercontent.com/tqm-cld/Tiktok-ai-generator/claude/tiktok-ai-video-generator-m6ldsj/deploy/huggingface/Dockerfile>
-2. Lange auf den Text drücken → **Alles auswählen** → **Kopieren**.
-3. Zurück zum Space-Tab → oben **Files** → **+ Add file** → **Create a new file**.
-4. Als Dateiname genau `Dockerfile` eintippen (großes D, keine Endung).
-5. Ins große Textfeld tippen → **Einsetzen**.
-6. Ganz unten **Commit new file to main** antippen.
+⚠️ Die Sichtbarkeit des Ports muss **Private** bleiben (so ist es voreingestellt). Dann kommt nur rein, wer mit deinem
+GitHub-Konto angemeldet ist. **Niemals auf „Public“ stellen.**
 
-Der Space beginnt jetzt zu bauen. Oben steht **Building**, die erste Erstellung dauert ca. 3–6 Minuten.
-
-### Schritt 4: Zugangscode festlegen (1 Minute)
-
-Damit niemand außer dir Videos erzeugen kann, braucht die App zusätzlich einen Zugangscode.
-
-1. Im Space oben **Settings** antippen.
-2. Nach unten zu **Variables and secrets** → **New secret**.
-3. **Name:** `ACCESS_CODE`, **Value:** ein langes Passwort, das du dir merkst
-   (z. B. `Leuchtturm-Banane-2026-Zebra`; Tipp: im iPhone-Passwortmanager speichern).
-4. **Save**. Der Space startet danach neu.
-
-**Optional, aber kostenlos und empfehlenswert:** Ein zweites Secret `PEXELS_API_KEY` mit deinem kostenlosen
-Pexels-Schlüssel (<https://www.pexels.com/api/>) anlegen. Dann bekommst du echte, bewegte Stockvideos statt
-generierter Hintergründe.
-
-⚠️ **`ANTHROPIC_API_KEY` jetzt noch NICHT eintragen.** Das wäre der erste kostenpflichtige Schritt (siehe Teil 2).
-
-### Schritt 5: Warten, bis „Running“ angezeigt wird
-
-- Oben neben dem Namen steht der Status. Er wechselt von **Building** zu **Running**.
-- Falls **Build error** oder **Runtime error** erscheint: auf **Logs** tippen, einen Screenshot machen und ihn mir schicken.
-
-### Schritt 6: Deinen privaten Link öffnen
-
-1. Im Space oben rechts auf **⋮** (drei Punkte) → **Embed this Space** tippen.
-2. Bei **Direct URL** steht dein Link, z. B. `https://deinname-tiktok-generator.hf.space`. Diesen Link öffnen.
-   (Nicht die Ansicht innerhalb der Hugging-Face-Seite benutzen. Dort kann Safari die Anmeldung nicht speichern.)
-3. Den Zugangscode aus Schritt 4 eingeben → **Anmelden**.
-4. **Als App speichern:** unten auf **Teilen** (□↑) → **Zum Home-Bildschirm** → **Hinzufügen**.
-
-### Schritt 7: Erstes Testvideo
+### Schritt 4: Erstes kostenloses Testvideo
 
 1. Prompt eingeben, z. B. *„Was würde passieren, wenn die Erde 5 Sekunden aufhört, sich zu drehen?“*
 2. **Videoszenen:** „Nur Stockvideos“ oder „Hybrid-Vorschau“.
 3. **Kosten prüfen:** Es muss **„kostenlos“** dastehen. Ohne Claude-Schlüssel ist das automatisch so.
-4. **✨ Video erstellen**. Das dauert ca. 2–5 Minuten, du kannst das iPhone dabei sperren.
-5. **⬇️ MP4 herunterladen** → **Dateien-App** öffnen → Downloads → Video öffnen → **Teilen → „Video sichern“**.
+4. **✨ Video erstellen**. Das dauert ca. 2–4 Minuten.
+5. **⬇️ MP4 herunterladen** → **Dateien-App** → Downloads → Video öffnen → **Teilen → „Video sichern“**.
 
-✅ Wenn das klappt, läuft die ganze Technik online.
+Im kostenlosen Test wird das fertige **Demo-Skript zur Erdrotation** verwendet. Dein Prompt wird also noch nicht
+umgesetzt. Getestet wird die ganze Technik: Stimme, Stockvideos, Schnitt, Untertitel, Musik, Download.
+
+**Optional, aber kostenlos:** ⚙️ Einstellungen → **Pexels-Schlüssel** eintragen (<https://www.pexels.com/api/>).
+Dann gibt es echte, bewegte Stockvideos statt generierter Hintergründe.
+
+---
+
+## Teil B – Jedes weitere Mal (ca. 1 Minute)
+
+1. <https://github.com/codespaces> öffnen → deinen Codespace antippen. Er startet in ca. 30–60 Sekunden, und die
+   App startet automatisch mit.
+2. Sobald der Editor geladen ist: das **App-Symbol auf dem Home-Bildschirm** öffnen.
+3. **Nach der Nutzung** (spart Gratis-Stunden): <https://github.com/codespaces> → **⋯** neben dem Codespace →
+   **Stop codespace**. Vergisst du das, stoppt er nach 30 Minuten ohne Nutzung von selbst.
 
 ---
 
@@ -89,22 +78,21 @@ generierter Hintergründe.
 
 | Thema | Was passiert |
 |---|---|
-| **Ruhezustand** | Nach 48 Stunden ohne Nutzung schläft der kostenlose Space ein. Beim nächsten Öffnen wacht er in ca. 1–3 Minuten auf. |
-| **Videos speichern** | Videos werden bei einem Neustart des Space gelöscht. Deshalb jedes Video **gleich herunterladen**. |
-| **Einstellungen in der App** | Schlüssel immer über **Hugging-Face-Secrets** eintragen, nicht über ⚙️ in der App. Was dort gespeichert wird, ist nach einem Neustart weg. |
-| **Ausgabenbuch / Monatsbudget** | Wird bei einem Neustart zurückgesetzt. Bei kostenpflichtigen Diensten deshalb **zusätzlich immer ein Limit im Konto des Anbieters** setzen. |
-| **Updates** | Wenn ich die App auf GitHub verbessere: Space → **Settings** → **Factory rebuild**. |
-| **Kosten bei Hugging Face** | Die Stufe „CPU basic“ ist kostenlos. Kostenpflichtig wären nur bessere Hardware oder dauerhafter Speicher. Das brauchen wir nicht. |
+| **Videos** | bleiben im Codespace gespeichert (Galerie „Meine Videos“), solange der Codespace existiert |
+| **Ungenutzt** | Nach 30 Tagen ohne Nutzung löscht GitHub den Codespace. Dann einfach Schritt 2 wiederholen. |
+| **Einstellungen** | Schlüssel aus ⚙️ Einstellungen bleiben im Codespace gespeichert, aber **nicht** auf GitHub |
+| **Updates** | Wenn ich die App verbessere: neuen Codespace anlegen (Schritt 2) und den alten löschen |
+| **Fehler** | Im Editor im Terminal `cat /tmp/tiktok-app.log` eingeben und mir einen Screenshot schicken. Neustart der App: `bash .devcontainer/start-app.sh` |
+| **Verbrauch** | <https://github.com/settings/billing> |
 
 ---
 
-## Teil 2 – Echte Videos zu deinem Prompt (kostenpflichtig, erst nach Rücksprache)
+## Teil C – Echte Videos zu deinem Prompt (kostenpflichtig, erst nach Rücksprache)
 
-Wenn der kostenlose Test klappt, sind das die nächsten Schritte. **Jeder davon kostet Geld, deshalb besprechen wir ihn
-vorher.**
+**Jeder dieser Schritte kostet Geld, deshalb besprechen wir ihn vorher.**
 
 1. **Claude (Recherche + Skript zu deinem Prompt):** ca. 0,03–0,50 $ pro Video, je nach Claude-Modell.
-   Konto auf <https://console.anthropic.com>, Guthaben aufladen, **Ausgabenlimit setzen**, dann Secret
-   `ANTHROPIC_API_KEY` anlegen. Optional `CLAUDE_MODEL` (z. B. `claude-sonnet-5-5`) und `MONTHLY_BUDGET_USD`.
+   Konto auf <https://console.anthropic.com>, Guthaben aufladen, **Ausgabenlimit setzen**, dann in ⚙️ Einstellungen
+   den Schlüssel eintragen.
 2. **Hybrid mit echten KI-Szenen (Seedance 1.5 Pro):** ca. 0,31–0,37 $ pro Video zusätzlich. Wird erst eingebaut,
    wenn du zustimmst (siehe [KI-VIDEOMODELLE.md](KI-VIDEOMODELLE.md)).

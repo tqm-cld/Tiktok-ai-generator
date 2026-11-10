@@ -26,7 +26,7 @@
 <form method="post">
   <img src="/static/apple-touch-icon.png" alt="">
   <h1>Zugangscode eingeben</h1>
-  <p>Den Zugangscode findest du im schwarzen Fenster auf deinem Computer – oder, wenn die App online läuft, in deinen Hugging-Face-Secrets (ACCESS_CODE).</p>
+  <p>Den Zugangscode findest du im schwarzen Fenster auf deinem Computer – oder, wenn die App online läuft, in der Datei .env (ACCESS_CODE).</p>
   <input name="code" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="200" autofocus required>
   <button type="submit">Anmelden</button>
   {% if error %}<div class="err">{{ error }}</div>{% endif %}

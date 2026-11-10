@@ -1,0 +1,16 @@
+{
+  // Startkonfiguration für GitHub Codespaces (kostenloses Kontingent für private Konten).
+  // Beim ersten Start werden die Pakete installiert, bei jedem Start läuft die App automatisch an.
+  "name": "TikTok-KI-Generator",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "hostRequirements": { "cpus": 2 },
+  "postCreateCommand": "pip install --no-cache-dir -r requirements.txt",
+  "postStartCommand": "bash .devcontainer/start-app.sh",
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": { "label": "KI-Videos App", "onAutoForward": "notify" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["docs/IPHONE-HOSTING.md"] }
+  }
+}
