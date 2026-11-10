@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+output/*
+!output/.gitkeep
+cache/
+assets/music/*
+!assets/music/.gitkeep
+*TEMP_MPY*
