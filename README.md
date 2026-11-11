@@ -1,34 +1,43 @@
-# 🎬 KI-Faktenvideos für TikTok
+# 🎬 KI-Video-Studio für TikTok
 
-Du gibst nur eine Frage ein – zum Beispiel
-**„Was würde passieren, wenn die Erde 5 Sekunden aufhört, sich zu drehen?“** – und bekommst ein
-fertiges 9:16-MP4 (30–60 s), bedienbar direkt vom **iPhone**.
+Format wählen, optional eine Idee eingeben, Szenen ansehen, Video erstellen – fertig ist ein
+**9:16-MP4 (1080 × 1920, 30–60 s)** mit Stimme, Musik, Soundeffekten, Grafiken und wortgenauen Untertiteln.
+Bedienbar am PC und vom **iPhone**.
 
-| Baustein | So wird es gemacht | Kosten |
+## Die Formate
+
+| Format | Was passiert | Serie |
 |---|---|---|
-| 🔎 Recherche & Faktencheck | Claude sucht im Web, prüft Zahlen, sammelt Quellen | ┐ |
-| ✍️ Skript mit starkem Hook | Claude schreibt nur aus den geprüften Fakten: Hook → Spannung → Wendung → Pointe | ┘ ca. 0,20–0,50 $ |
-| 🗣️ Natürliche deutsche KI-Stimme | Microsoft „Florian/Seraphina Multilingual“, Hook langsamer gesprochen | 0 $ |
-| 🎥 Bewegte Videoszenen | Hochkant-Stockvideos (Pexels) + Kamerafahrten · **Hybrid:** echte KI-Szenen für Hook & Höhepunkte (🔒 nach Freigabe) | 0 $ (Hybrid ca. 0,31–0,37 $) |
-| ✂️ Dynamischer Schnitt | kurze Einstellungen (≤ 3 s), Zoom-Schläge, Schwenks, Lichtblitz + Wackeln bei Schock-Momenten | 0 $ |
-| 💬 Wortgenaue Untertitel | aktuelles Wort gelb, Schlüsselwort pink, „Pop“-Animation, Hook-Titel oben | 0 $ |
-| 🔊 Soundeffekte | Whoosh, Impact, Boom, Riser, Tick – selbst erzeugt, ohne Lizenzprobleme | 0 $ |
-| 🎵 Musik | eigene MP3s oder automatisch erzeugter Doku-Klangteppich | 0 $ |
+| 🕵️ **Finde den Imposter** | 3–4 Figuren mit Alibis, ein versteckter Hinweis widerspricht genau einer Aussage, Countdown, logische Auflösung | ✅ |
+| 📹 **Mysteriöse Überwachungskamera** | fiktive Kameraaufnahmen (REC, Zeitstempel), eine subtile Veränderung, Auflösung mit Markierung | ✅ |
+| 🧭 **Du entscheidest** | Survival-Story mit 2–3 Optionen – die Zuschauer stimmen in den Kommentaren ab, die nächste Folge setzt die Wahl fort | ✅ |
+| 🔍 **Unmöglicher Kriminalfall** | Verdächtige, Beweise (Fair Play), Countdown, nachvollziehbare Lösung | ✅ |
+| 🚪 **Das unendliche Level** | Mystery-Serie mit Leveln, Regeln, wiederkehrenden Figuren und Cliffhangern | ✅ |
+| 🌍 **Fakten-Doku** | faktengeprüftes Wissensvideo mit Quellen (Claude + Websuche) | – |
 
-**Kostenschutz:** Die App zeigt vor jedem Video die voraussichtlichen Kosten an. Wenn etwas Geld
-kostet, startet sie erst, nachdem du ausdrücklich zugestimmt hast – auch der Server prüft das.
-Kostenpflichtige KI-Videomodelle sind sichtbar, aber gesperrt (🔒), bis du sie freigibst.
-Es wird **nichts automatisch veröffentlicht**. Du lädst das Video selbst bei TikTok hoch.
+Jedes Format hat eigene Dramaturgie, Kulissen, Grafiken, Musik, Sprechweise und Untertitelstil.
+**Serien:** Figuren, Regeln, Hinweise und offene Cliffhanger werden gespeichert; jede Folge baut darauf auf,
+löst Cliffhanger auf, erzeugt eine Vorschau auf die nächste Folge und wiederholt sich nicht (100 Imposter-Folgen getestet).
 
-👉 Vergleich der KI-Videomodelle, Kosten pro 45-s-Video und pro Monat: [docs/KI-VIDEOMODELLE.md](docs/KI-VIDEOMODELLE.md)
+👉 Alle Details, Funktionsstatus und Grenzen: **[docs/FORMATE.md](docs/FORMATE.md)**
 
-### Die drei Modi für Videoszenen
+## Was kostet was?
 
-| Modus | Was passiert | Kosten der Szenen |
+| Baustein | Lösung | Kosten |
 |---|---|---|
-| **Nur Stockvideos** | alle Shots aus kostenlosen Pexels-Videos | 0 $ |
-| **Hybrid-Vorschau** | wie oben, aber die geplanten KI-Momente (Hook, Schock, Wendung) sind im Video mit „KI-SZENE · VORSCHAU“ markiert – so siehst du vorab, wo später KI-Szenen kommen | 0 $ |
-| **Hybrid mit KI-Modell** 🔒 | die 1–4 wichtigsten Momente werden echte KI-Videoszenen (je ca. 4 s), der Rest Stockvideos | ca. 0,31–0,37 $ (3 KI-Szenen, Seedance 1.5 Pro) – wird erst nach deiner Zustimmung eingebaut |
+| Skripte (alle Formate) | eingebauter Generator – geprüfte Bausteine, offline | **0 $** |
+| Skripte zu deiner eigenen Idee | Claude (optional, Schlüssel nötig) | ca. 0,01–0,15 $ (Fakten mit Websuche 0,18–0,47 $) |
+| Stimmen (Erzähler + Figuren) | Microsoft Edge TTS | 0 $ (Internet nötig) |
+| Kulissen & Grafiken | lokal gezeichnet | 0 $ |
+| Stockvideos | Pexels (optional) | 0 $ |
+| Musik & Soundeffekte | lokal komponiert, lizenzfrei | 0 $ |
+| Echte KI-Videoszenen | z. B. Seedance – 🔒 erst nach deiner Zustimmung | ca. 0,31–0,37 $ |
+
+**Kostenschutz:** Vor jedem kostenpflichtigen Schritt (auch beim Planen) zeigt die App die Kosten und startet
+erst nach deiner Zustimmung – der Server prüft das zusätzlich. Monatsbudget in den Einstellungen.
+Es wird **nichts automatisch veröffentlicht**.
+
+👉 KI-Videomodelle im Vergleich: [docs/KI-VIDEOMODELLE.md](docs/KI-VIDEOMODELLE.md)
 
 ---
 
@@ -76,14 +85,16 @@ solange du die App nutzt. Der Computer muss eingeschaltet bleiben, denn dort wir
 
 ### 5. Video erstellen
 
-1. Frage eingeben oder einen Vorschlag antippen.
-2. Länge wählen (30–60 s).
-3. „Faktencheck mit Websuche“ an lassen (empfohlen).
-4. Videoszenen: **Nur Stockvideos** oder **Hybrid-Vorschau** (beide kostenlos). Bei Hybrid die Zahl der KI-Szenen wählen.
-5. Kosten prüfen und bei Bedarf **Zustimmung anhaken**.
-6. **„✨ Video erstellen“** antippen. Der Fortschritt wird live angezeigt.
-   Du kannst das iPhone dabei sperren: Beim Öffnen läuft die Anzeige weiter.
-7. Fertig: Video ansehen, **„⬇️ MP4 herunterladen“**, Beschreibung mit Hashtags kopieren, Quellen ansehen.
+1. **Format** antippen (z. B. „Finde den Imposter“).
+2. Optional eine **eigene Idee** eingeben (wird mit Claude-Schlüssel umgesetzt).
+3. Optional **Serienmodus** an → Serie wählen oder neu anlegen (bei „Du entscheidest“: gewonnene Option A/B/C wählen).
+4. **Länge** (Standard 40 s), **Stimme** + **Sprechweise** (▶ probehören), **Musikstil** (▶ probehören), **Untertitelstil** wählen.
+   Format-passende Voreinstellungen werden automatisch gesetzt.
+5. **„👁 Szenen planen“**: zeigt alle geplanten Szenen und die Qualitätsprüfung des Skripts.
+6. Kosten prüfen und bei Bedarf **Zustimmung anhaken** (im kostenlosen Modus nicht nötig).
+7. **„✨ Video erstellen“**. Der Fortschritt wird live angezeigt; du kannst das iPhone dabei sperren.
+8. Fertig: Video ansehen, **„⬇️ MP4 herunterladen“**, Qualitätsbericht und Vorschau auf die nächste Folge ansehen,
+   **„▶ Nächste Folge planen“**.
 
 **Video in die Fotos-App speichern:** Nach dem Herunterladen die **Dateien-App** öffnen →
 „Downloads“ → Video öffnen → **Teilen → „Video sichern“**. Dann kannst du es in TikTok hochladen.
@@ -92,10 +103,12 @@ solange du die App nutzt. Der Computer muss eingeschaltet bleiben, denn dort wir
 
 | Schlüssel | Wofür | Woher | Kosten |
 |---|---|---|---|
-| **Claude** | Recherche, Faktencheck, Skript zu deinem Thema | <https://console.anthropic.com> → API Keys | ca. 0,20–0,50 $ pro Video |
+| **Claude** | Skripte zu deiner eigenen Idee; Fakten-Recherche | <https://console.anthropic.com> → API Keys | ca. 0,01–0,50 $ pro Video (je nach Format und Modell) |
 | **Pexels** | echte, bewegte Hochkant-Videos | <https://www.pexels.com/api/> | kostenlos |
 
-Ohne Claude-Schlüssel läuft ein **kostenloser Testmodus** mit einem fertigen Demo-Skript (Erdrotation).
+Ohne Claude-Schlüssel schreibt der **kostenlose Generator** die Skripte aller Rätsel-Formate (abwechslungsreich,
+logisch geprüft, auch als Serie); deine eigene Idee fließt dann noch nicht ein. Die Fakten-Doku nutzt ohne
+Schlüssel ein Demo-Skript (Erdrotation).
 Die Schlüssel werden nur lokal in der Datei `.env` gespeichert, nie auf GitHub.
 
 **Tipp:** Lege in der Anthropic-Konsole ein **monatliches Ausgabelimit** fest (z. B. 5 $). Dann können nie
@@ -103,8 +116,9 @@ höhere Kosten entstehen.
 
 ### 7. Optional: eigene Musik
 
-Lizenzfreie MP3s in den Ordner `assets/music/` legen. Ohne eigene Musik erzeugt das Programm einen
-spannungsvollen Doku-Klangteppich.
+Die App komponiert für jedes Format passende Musik selbst (keine Lizenzfragen). Eigene Musik **mit geklärten
+Nutzungsrechten** kann in `assets/music/<stil>/` liegen (z. B. `assets/music/spannung/titel.mp3`) und hat dann Vorrang.
+Stile: `spannung`, `ueberwachung`, `abenteuer`, `detektiv`, `level`, `doku`.
 
 ---
 
@@ -160,7 +174,9 @@ spannungsvollen Doku-Klangteppich.
 | Monatsbudget / Claude-Modell | `MONTHLY_BUDGET_USD`, `CLAUDE_MODEL` in `.env` (oder ⚙️ Einstellungen) |
 | Port | `PORT=9000` in `.env` |
 
-Kommandozeile (optional): `python main.py "Frage" --seconds 45` (`--no-factcheck`, `--demo`, `--mode preview`, `--ai-moments 3`)
+Kommandozeile (optional): `python main.py "Idee" --format imposter --seconds 40`
+(`--format imposter|cctv|entscheidung|krimi|level|fakten`, `--series <ID>`, `--choice A`, `--subtitles mystery`,
+`--music spannung`, `--no-factcheck`, `--demo`, `--mode preview`, `--ai-moments 3`)
 
 ### Projektaufbau
 
@@ -177,7 +193,14 @@ tiktok_generator/
   pipeline.py              ← steuert alle Schritte + Fortschritt
   story.py                 ← ① Recherche, Faktencheck, Skript (Claude)
   voice.py                 ← ② KI-Stimme + Wortzeitstempel
-  visuals.py               ← ③ Bildquelle: Stock, Hybrid-Vorschau, KI-Anbieter (nach Freigabe)
+  formats.py               ← die 6 Formate (Dramaturgie, Musik, Stimme, Untertitel, Bildstil)
+  offline.py               ← kostenloser Skript-Generator für alle Formate (inkl. Serien)
+  series.py                ← Serien: Figuren, Regeln, Cliffhanger, Folgen
+  scenes.py                ← gezeichnete Kulissen je Format
+  overlays.py              ← Grafiken: Aussagen, Hinweise, Countdown, Auswahl, Regeln, Kamera-HUD
+  audio.py                 ← Stimmen, Musikstile, Ducking, Normalisierung, Limiter
+  qc.py                    ← Qualitätskontrolle vor und nach dem Export
+  visuals.py               ← ③ Bildquelle: Kulisse, Stock, Hybrid-Vorschau, KI-Anbieter (nach Freigabe)
   ledger.py                ←    Ausgabenbuch + Monatsbudget
   media.py                 ←    Pexels-Suche / generierte Hintergründe
   video.py                 ← ④ dynamischer Schnitt, Hook-Titel, Export

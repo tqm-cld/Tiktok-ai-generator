@@ -3,238 +3,269 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b12">
+<meta name="theme-color" content="#0a0a10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="KI-Videos">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<title>KI-Faktenvideos</title>
+<title>KI-Video-Studio</title>
 <style>
   :root {
-    --bg: #0b0b12; --card: #151521; --card-2: #1d1d2c; --line: #2a2a3d;
-    --text: #f3f3f7; --muted: #9a9ab0; --pink: #ff2d6f; --cyan: #25f4ee;
+    --bg: #0a0a10; --card: #13131c; --card-2: #1b1b28; --card-3: #232335; --line: #2a2a3e;
+    --text: #f2f2f7; --muted: #9a9ab2; --pink: #ff2d6f; --cyan: #25f4ee; --accent: #ff2d6f;
     --ok: #3ddc97; --warn: #ffc857; --err: #ff5d73; --radius: 18px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    margin: 0; min-height: 100vh; color: var(--text); background: var(--bg);
+  body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg);
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background-image: radial-gradient(circle at 15% 0%, #ff2d6f22, transparent 40%),
-                      radial-gradient(circle at 90% 10%, #25f4ee1c, transparent 40%);
-  }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.1rem; }
+    background-image: radial-gradient(circle at 10% -5%, #ff2d6f26, transparent 40%), radial-gradient(circle at 95% 5%, #25f4ee1c, transparent 40%); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.12rem; letter-spacing: -.01em; }
   .logo img { width: 36px; height: 36px; border-radius: 10px; }
-  .icon-btn { white-space: nowrap; background: var(--card); color: var(--text); border: 1px solid var(--line);
-              border-radius: 12px; padding: 9px 13px; font: inherit; cursor: pointer; }
-  .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 20px; align-items: start; }
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .icon-btn { white-space: nowrap; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 9px 13px; font: inherit; cursor: pointer; }
+  .grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; align-items: start; }
   .grid > * { min-width: 0; }
-  @media (max-width: 380px) { .btn-label { display: none; } .logo { font-size: 1rem; } }  /* verhindert seitliches Verschieben auf dem Handy */
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
-  h1 { font-size: 1.55rem; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.02em; }
-  .sub { color: var(--muted); margin: 0 0 18px; font-size: .95rem; }
-  label.title { display: block; font-weight: 700; margin-bottom: 8px; }
-  textarea {
-    width: 100%; min-height: 92px; resize: vertical; padding: 14px; border-radius: 14px;
-    background: var(--card-2); color: var(--text); border: 1px solid var(--line); font: inherit; font-size: 16px;
-  }
-  textarea:focus { outline: 2px solid var(--cyan); outline-offset: 1px; border-color: transparent; }
-  .chips { display: flex; gap: 8px; overflow-x: auto; margin: 10px -4px 20px; padding: 0 4px 4px; scrollbar-width: none; }
-  .chip { flex: none; font-size: .85rem; padding: 7px 12px; border-radius: 999px; cursor: pointer;
-          background: transparent; color: var(--muted); border: 1px solid var(--line); font-family: inherit; }
-  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .length-value { font-size: 1.4rem; font-weight: 800; color: var(--cyan); }
-  input[type=range] { width: 100%; accent-color: var(--pink); margin: 8px 0 2px; height: 28px; }
-  .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .8rem; margin-bottom: 18px; }
-  .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px;
-            background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 18px; }
-  .switch small { display: block; color: var(--muted); font-size: .82rem; }
-  .switch input { width: 46px; height: 28px; accent-color: var(--ok); flex: none; }
-
-  .models { display: grid; gap: 8px; margin-bottom: 18px; }
-  .model { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left;
-           padding: 12px 14px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line);
-           color: var(--text); font: inherit; cursor: pointer; }
-  .model.selected { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan) inset; }
-  .model.locked { opacity: .55; cursor: not-allowed; }
-  .model .name { font-weight: 700; font-size: .95rem; }
-  .model .meta { color: var(--muted); font-size: .8rem; }
-  .model .price { font-weight: 800; font-size: .9rem; white-space: nowrap; }
-  .model .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); }
-  .model.selected .dot { border: 5px solid var(--cyan); }
-  .stars { color: var(--warn); letter-spacing: 1px; }
-  details.more { margin: -6px 0 18px; }
-  details.more summary { cursor: pointer; color: var(--muted); font-size: .9rem; padding: 4px 0; }
-  .note-small { color: var(--muted); font-size: .82rem; margin: 8px 0 10px; }
-  .model .tag { display: inline-block; font-size: .7rem; padding: 1px 7px; border-radius: 999px; margin-left: 4px;
-                background: #3ddc9722; color: var(--ok); vertical-align: middle; }
-  #monthInfo { margin-top: 6px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 380px) { .btn-label { display: none; } .logo { font-size: 1rem; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card + .card { margin-top: 18px; }
+  h1 { font-size: 1.5rem; line-height: 1.2; margin: 0 0 4px; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 0 0 16px; font-size: .95rem; }
+  .step { display: flex; align-items: center; gap: 10px; font-weight: 800; margin: 4px 0 12px; font-size: 1.02rem; }
+  .step b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #0a0a10; font-size: .85rem; }
+  label.title { display: block; font-weight: 700; margin: 0 0 6px; font-size: .92rem; }
+  .formats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  @media (max-width: 560px) { .formats { grid-template-columns: repeat(2, 1fr); } }
+  .fmt { text-align: left; background: var(--card-2); border: 1px solid var(--line); border-radius: 16px; padding: 12px; color: var(--text); font: inherit; cursor: pointer; position: relative; transition: border-color .15s, transform .1s; min-height: 118px; }
+  .fmt:active { transform: scale(.98); }
+  .fmt .ico { font-size: 1.6rem; line-height: 1; }
+  .fmt .nm { display: block; font-weight: 800; font-size: .95rem; margin: 6px 0 2px; }
+  .fmt .tg { display: block; color: var(--muted); font-size: .78rem; line-height: 1.35; }
+  .fmt.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset, 0 8px 24px #0006; }
+  .fmt .series-tag { position: absolute; top: 10px; right: 10px; font-size: .64rem; padding: 2px 7px; border-radius: 999px; background: #ffffff14; color: var(--muted); }
+  textarea, input[type=text], select, input[type=number] { width: 100%; padding: 12px 13px; border-radius: 13px; background: var(--card-2); color: var(--text); border: 1px solid var(--line); font: inherit; font-size: 16px; }
+  textarea { min-height: 78px; resize: vertical; }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 14px; }
+  .with-btn { display: flex; gap: 8px; }
+  .with-btn select { flex: 1; min-width: 0; }
+  .play { flex: none; width: 48px; border-radius: 13px; border: 1px solid var(--line); background: var(--card-3); color: var(--text); font-size: 1.05rem; cursor: pointer; }
+  .play.on { background: var(--accent); color: #0a0a10; }
+  .lenrow { display: flex; justify-content: space-between; align-items: baseline; }
+  .length-value { font-size: 1.25rem; font-weight: 800; color: var(--accent); }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; margin: 4px 0 0; }
+  .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .76rem; margin-bottom: 12px; }
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 12px; cursor: pointer; }
+  .switch small { display: block; color: var(--muted); font-size: .8rem; }
+  .switch input { width: 44px; height: 26px; accent-color: var(--ok); flex: none; }
+  .subs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (max-width: 560px) { .subs { grid-template-columns: repeat(2, 1fr); } }
+  .subopt { border: 1px solid var(--line); background: #000; border-radius: 12px; padding: 10px 6px; cursor: pointer; text-align: center; font-weight: 900; font-size: .9rem; color: #fff; font-family: inherit; }
+  .subopt small { display: block; font-weight: 500; font-size: .7rem; color: var(--muted); margin-top: 3px; }
+  .subopt.sel { outline: 2px solid var(--accent); }
+  .subopt.tiktok span { text-shadow: 0 0 3px #000, 2px 2px 0 #000; } .subopt.tiktok i { color: #ffdd00; font-style: normal; }
+  .subopt.mystery i { color: #ff5252; font-style: normal; text-shadow: 0 0 10px #ff2828; }
+  .subopt.clean span { background: #0a0a10cc; padding: 2px 6px; border-radius: 6px; font-weight: 700; } .subopt.clean i { color: #ffd640; font-style: normal; }
+  .subopt.neon i { color: #25f4ee; font-style: normal; text-shadow: 0 0 10px #25c8ff; }
+  .series-box { background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin: -4px 0 12px; display: none; }
+  .series-box.show { display: block; }
+  .series-box .meta { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  .choice-btns { display: flex; gap: 8px; margin-top: 8px; }
+  .choice-btns button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-3); color: var(--text); font-weight: 800; cursor: pointer; }
+  .choice-btns button.sel { background: var(--accent); color: #0a0a10; }
+  details.more { margin: 0 0 12px; }
+  details.more summary { cursor: pointer; color: var(--muted); font-size: .9rem; padding: 6px 0; }
+  .models { display: grid; gap: 8px; margin-top: 8px; }
+  .model { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 11px 13px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; }
+  .model.selected { border-color: var(--cyan); }
+  .model.locked { opacity: .55; }
+  .model .name { font-weight: 700; font-size: .9rem; } .model .meta { color: var(--muted); font-size: .76rem; } .model .price { font-weight: 800; font-size: .85rem; white-space: nowrap; }
+  .model .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); } .model.selected .dot { border: 5px solid var(--cyan); }
+  .btnrow { display: flex; gap: 10px; }
+  .primary { flex: 1; padding: 15px; border: 0; border-radius: 14px; cursor: pointer; color: #fff; font: 800 1.05rem system-ui, sans-serif; background: linear-gradient(90deg, var(--pink), #ff5f3d); box-shadow: 0 8px 28px #ff2d6f3a; }
+  .secondary { flex: 1; padding: 15px; border-radius: 14px; cursor: pointer; color: var(--text); font: 700 1rem system-ui, sans-serif; background: var(--card-3); border: 1px solid var(--line); }
+  .primary:disabled, .secondary:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .cost { border-radius: 14px; padding: 12px 14px; margin: 4px 0 14px; background: #25f4ee0b; border: 1px solid #25f4ee3a; }
+  .cost h3 { margin: 0 0 6px; font-size: .95rem; display: flex; justify-content: space-between; gap: 10px; }
+  .cost ul { list-style: none; padding: 0; margin: 0 0 6px; font-size: .82rem; color: var(--muted); display: grid; gap: 3px; }
+  .cost li { display: flex; justify-content: space-between; gap: 10px; } .cost li span:last-child { white-space: nowrap; color: var(--text); }
+  .cost .note { font-size: .76rem; color: var(--muted); margin: 0; }
   #monthInfo.over { color: var(--err); font-weight: 700; }
-
-  .cost { border-radius: 14px; padding: 14px; margin-bottom: 14px; background: #25f4ee0d; border: 1px solid #25f4ee44; }
-  .cost h3 { margin: 0 0 8px; font-size: 1rem; display: flex; justify-content: space-between; gap: 10px; }
-  .cost ul { list-style: none; padding: 0; margin: 0 0 8px; font-size: .86rem; color: var(--muted); display: grid; gap: 4px; }
-  .cost li { display: flex; justify-content: space-between; gap: 10px; }
-  .cost li span:last-child { white-space: nowrap; color: var(--text); }
-  .cost .note { font-size: .78rem; color: var(--muted); margin: 0; }
-  .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: .9rem; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: .88rem; }
   .consent[hidden] { display: none; }
-  .consent input { width: 22px; height: 22px; flex: none; accent-color: var(--pink); margin-top: 1px; }
-
-  .primary { width: 100%; padding: 16px; border: 0; border-radius: 14px; cursor: pointer; color: #fff;
-             font: 700 1.1rem system-ui, sans-serif; background: linear-gradient(90deg, var(--pink), #ff5f3d);
-             box-shadow: 0 8px 30px #ff2d6f40; }
-  .primary:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
-  .notice { margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: .9rem; display: none; }
+  .consent input { width: 22px; height: 22px; flex: none; accent-color: var(--pink); }
+  .notice { margin-top: 12px; padding: 11px 13px; border-radius: 12px; font-size: .88rem; display: none; }
   .notice.show { display: block; }
   .notice.warn { background: #ffc85714; border: 1px solid #ffc85755; color: var(--warn); }
   .notice.err { background: #ff5d7314; border: 1px solid #ff5d7355; color: var(--err); }
   .notice button.link { color: inherit; font-weight: 700; background: none; border: 0; padding: 0; text-decoration: underline; font-size: inherit; cursor: pointer; }
-
-  .progress { display: none; margin-top: 18px; }
-  .progress.show { display: block; }
+  .plan { display: none; }
+  .plan.show { display: block; }
+  .plan h3 { margin: 0 0 2px; font-size: 1.05rem; }
+  .plan .meta { color: var(--muted); font-size: .84rem; margin-bottom: 10px; }
+  .scenes { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; max-height: 420px; overflow: auto; }
+  .scenes li { display: grid; grid-template-columns: auto 1fr; gap: 10px; background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; font-size: .88rem; }
+  .kind { font-size: .68rem; font-weight: 800; padding: 3px 7px; border-radius: 7px; background: var(--card-3); color: var(--muted); white-space: nowrap; height: fit-content; text-transform: uppercase; }
+  .kind.hook, .kind.reveal { background: var(--accent); color: #0a0a10; } .kind.clue, .kind.evidence { background: #ffc857; color: #0a0a10; } .kind.countdown, .kind.choice { background: var(--cyan); color: #0a0a10; }
+  .scenes .sp { font-weight: 800; color: var(--cyan); } .scenes .os { display: block; color: var(--muted); font-size: .78rem; margin-top: 2px; }
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: .84rem; }
+  .checks li { display: flex; gap: 8px; } .checks .st { flex: none; width: 20px; text-align: center; }
+  .checks .d { color: var(--muted); }
+  .progress { display: none; margin-top: 16px; } .progress.show { display: block; }
   .bar { height: 12px; background: var(--card-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
   .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--pink)); transition: width .4s ease; }
   .progress-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; }
-  .progress-msg { color: var(--muted); font-size: .9rem; margin-top: 8px; min-height: 1.4em; }
-  .steps { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; }
-  .steps li { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: .92rem; }
-  .steps .dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: .7rem; flex: none; }
-  .steps li.active { color: var(--text); }
-  .steps li.active .dot { border-color: var(--cyan); border-top-color: transparent; animation: spin 1s linear infinite; }
-  .steps li.done { color: var(--text); }
-  .steps li.done .dot { background: var(--ok); border-color: var(--ok); color: #0b0b12; }
-  .steps li.done .dot::after { content: "✓"; font-weight: 900; }
+  .progress-msg { color: var(--muted); font-size: .88rem; margin-top: 8px; min-height: 1.4em; }
+  .steps { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 5px; }
+  .steps li { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: .9rem; }
+  .steps .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: .65rem; flex: none; }
+  .steps li.active { color: var(--text); } .steps li.active .dot { border-color: var(--cyan); border-top-color: transparent; animation: spin 1s linear infinite; }
+  .steps li.done { color: var(--text); } .steps li.done .dot { background: var(--ok); border-color: var(--ok); color: #0a0a10; } .steps li.done .dot::after { content: "✓"; font-weight: 900; }
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  .phone { aspect-ratio: 9 / 16; width: 100%; max-width: 340px; margin: 0 auto; border-radius: 24px; overflow: hidden;
-           background: #000; border: 6px solid #22222f; display: grid; place-items: center; }
+  .phone { aspect-ratio: 9 / 16; width: 100%; max-width: 330px; margin: 0 auto; border-radius: 24px; overflow: hidden; background: #000; border: 6px solid #22222f; display: grid; place-items: center; }
   .phone video { width: 100%; height: 100%; object-fit: cover; display: none; }
-  .placeholder { color: var(--muted); text-align: center; padding: 24px; font-size: .95rem; }
-  .placeholder .big { font-size: 2.6rem; display: block; margin-bottom: 8px; }
-  .result-actions { display: none; gap: 10px; margin-top: 14px; flex-direction: column; }
-  .result-actions.show { display: flex; }
-  .btn { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 14px; border-radius: 12px;
-         font: 600 1rem system-ui, sans-serif; text-decoration: none; cursor: pointer;
-         background: var(--card-2); color: var(--text); border: 1px solid var(--line); }
+  .placeholder { color: var(--muted); text-align: center; padding: 24px; font-size: .92rem; } .placeholder .big { font-size: 2.4rem; display: block; margin-bottom: 8px; }
+  .result-actions { display: none; gap: 10px; margin-top: 14px; flex-direction: column; } .result-actions.show { display: flex; }
+  .btn { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 13px; border-radius: 12px; font: 600 .98rem system-ui, sans-serif; text-decoration: none; cursor: pointer; background: var(--card-2); color: var(--text); border: 1px solid var(--line); }
   .btn.cta { background: var(--ok); color: #08130e; border: 0; }
-  .hint { font-size: .8rem; color: var(--muted); margin: -2px 0 0; text-align: center; }
-  .caption-box { background: var(--card-2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; font-size: .9rem; color: var(--muted); word-break: break-word; }
-  .sources { font-size: .85rem; }
-  .sources h4 { margin: 4px 0 6px; font-size: .9rem; }
-  .sources ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
-  .sources a { color: var(--cyan); word-break: break-word; }
-
-  h2 { font-size: 1.15rem; margin: 34px 0 12px; }
+  .hint { font-size: .78rem; color: var(--muted); margin: -2px 0 0; text-align: center; }
+  .caption-box { background: var(--card-2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; font-size: .88rem; color: var(--muted); word-break: break-word; }
+  .qc { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .qc h4, .sources h4 { margin: 0 0 6px; font-size: .9rem; }
+  .sources { font-size: .84rem; } .sources ol { margin: 0; padding-left: 20px; } .sources a { color: var(--cyan); word-break: break-word; }
+  .teaser { background: linear-gradient(135deg, #ff2d6f22, #25f4ee18); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: .9rem; }
+  h2 { font-size: 1.1rem; margin: 30px 0 12px; }
   .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
   .thumb { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; cursor: pointer; text-align: left; padding: 0; color: inherit; font: inherit; }
   .thumb video { width: 100%; aspect-ratio: 9/16; object-fit: cover; display: block; background: #000; pointer-events: none; }
-  .thumb div { padding: 8px 10px; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .empty { color: var(--muted); font-size: .95rem; }
-
-  dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; width: min(520px, calc(100vw - 24px)); }
-  dialog::backdrop { background: #000a; }
-  dialog h3 { margin: 0 0 4px; }
-  dialog p { color: var(--muted); margin: 0 0 16px; font-size: .9rem; }
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-weight: 600; margin-bottom: 6px; }
-  .field input, .field select { width: 100%; padding: 12px; border-radius: 12px; background: var(--card-2); color: var(--text); border: 1px solid var(--line); font: inherit; font-size: 16px; }
-  .field small { color: var(--muted); display: block; margin-top: 4px; }
-  .field small a { color: var(--cyan); }
-  .pill { font-size: .72rem; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
-  .pill.on { background: #3ddc9722; color: var(--ok); }
-  .pill.off { background: #ffc85722; color: var(--warn); }
-  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
-  .dialog-actions .primary { width: auto; padding: 11px 20px; font-size: 1rem; box-shadow: none; }
+  .thumb div { padding: 8px 10px; font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { color: var(--muted); font-size: .92rem; }
+  dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; width: min(520px, calc(100vw - 24px)); }
+  dialog::backdrop { background: #000a; } dialog h3 { margin: 0 0 4px; } dialog p { color: var(--muted); margin: 0 0 14px; font-size: .88rem; }
+  .field small { color: var(--muted); display: block; margin-top: 4px; font-size: .8rem; } .field small a { color: var(--cyan); }
+  .pill { font-size: .7rem; padding: 2px 8px; border-radius: 999px; margin-left: 6px; } .pill.on { background: #3ddc9722; color: var(--ok); } .pill.off { background: #ffc85722; color: var(--warn); }
+  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; } .dialog-actions .primary { flex: none; padding: 11px 20px; font-size: 1rem; box-shadow: none; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo"><img src="/static/apple-touch-icon.png" alt="">KI-Faktenvideos</div>
+    <div class="logo"><img src="/static/apple-touch-icon.png" alt="">KI-Video-Studio</div>
     <button class="icon-btn" id="openSettings" aria-label="Einstellungen">⚙️<span class="btn-label"> Einstellungen</span></button>
   </header>
 
   <div class="grid">
-    <section class="card">
-      <h1>Eine Frage – ein fertiges Video</h1>
-      <p class="sub">Recherche, Faktencheck, Skript mit Hook, KI-Stimme, Szenen, Untertitel, Musik, Soundeffekte und Schnitt – alles automatisch.</p>
+    <div>
+      <section class="card">
+        <h1>Virale Kurzvideos – automatisch</h1>
+        <p class="sub">Format wählen, Idee eingeben, Szenen ansehen, Video erstellen. 9:16, 30–60 Sekunden, mit Stimme, Musik, Effekten und Untertiteln.</p>
 
-      <form id="form">
-        <label class="title" for="topic">Deine Frage oder dein Thema</label>
-        <textarea id="topic" maxlength="300" placeholder="z. B. Was würde passieren, wenn die Erde 5 Sekunden aufhört, sich zu drehen?" required></textarea>
-        <div class="chips">
-          <button type="button" class="chip">🌍 Was, wenn die Erde 5 Sekunden aufhört, sich zu drehen?</button>
-          <button type="button" class="chip">🌊 Wie tief ist der Ozean wirklich?</button>
-          <button type="button" class="chip">☀️ Was, wenn die Sonne plötzlich verschwindet?</button>
-          <button type="button" class="chip">🧠 Wie viel Strom verbraucht dein Gehirn?</button>
+        <div class="step"><b>1</b> Format</div>
+        <div class="formats" id="formats"></div>
+
+        <div class="step"><b>2</b> Idee &amp; Gestaltung</div>
+        <div class="field">
+          <label class="title" for="topic" id="topicLabel">Eigene Idee (optional)</label>
+          <textarea id="topic" maxlength="300"></textarea>
         </div>
 
-        <div class="row">
-          <label class="title" for="seconds">Videolänge</label>
-          <span class="length-value"><span id="secondsLabel">45</span> s</span>
+        <label class="switch" id="seriesSwitch">
+          <span><b>Serienmodus</b><small>Folgen bauen aufeinander auf: gleiche Figuren, Regeln, Cliffhanger.</small></span>
+          <input type="checkbox" id="seriesOn">
+        </label>
+        <div class="series-box" id="seriesBox">
+          <select id="seriesSel"></select>
+          <div id="newSeries" style="margin-top:8px; display:none">
+            <input type="text" id="seriesName" maxlength="80" placeholder="Name der neuen Serie, z. B. „Crew der Aurora“">
+          </div>
+          <div class="meta" id="seriesMeta"></div>
+          <div id="choiceBox" style="display:none">
+            <div class="meta">Welche Option hat in den Kommentaren gewonnen?</div>
+            <div class="choice-btns"><button type="button" data-c="A">A</button><button type="button" data-c="B">B</button><button type="button" data-c="C">C</button></div>
+          </div>
         </div>
-        <input type="range" id="seconds" min="30" max="60" step="5" value="45">
-        <div class="ticks"><span>30 s</span><span>45 s</span><span>60 s</span></div>
 
-        <label class="switch">
+        <div class="lenrow"><label class="title" for="seconds">Videolänge</label><span class="length-value"><span id="secondsLabel">40</span> s</span></div>
+        <input type="range" id="seconds" min="30" max="60" step="5" value="40">
+        <div class="ticks"><span>30 s</span><span>45 s (empfohlen bis hier)</span><span>60 s</span></div>
+
+        <div class="row2">
+          <div class="field">
+            <label class="title" for="voice">Erzählerstimme</label>
+            <div class="with-btn"><select id="voice"></select><button type="button" class="play" id="voicePlay" title="Probehören">▶</button></div>
+          </div>
+          <div class="field">
+            <label class="title" for="voiceStyle">Sprechweise</label>
+            <select id="voiceStyle"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="title" for="music">Musikstil (selbst komponiert, lizenzfrei)</label>
+          <div class="with-btn"><select id="music"></select><button type="button" class="play" id="musicPlay" title="Probehören">▶</button></div>
+        </div>
+        <div class="field">
+          <label class="title">Untertitelstil</label>
+          <div class="subs" id="subs"></div>
+        </div>
+
+        <label class="switch" id="factSwitch">
           <span><b>Faktencheck mit Websuche</b><small>Claude recherchiert und prüft die Fakten, Quellen werden angezeigt.</small></span>
           <input type="checkbox" id="factCheck" checked>
         </label>
 
-        <label class="title">Videoszenen</label>
-        <div class="models" id="modelsMain"></div>
-        <div id="momentsRow" hidden>
-          <div class="row">
-            <label class="title" for="aiMoments">KI-Szenen pro Video</label>
-            <span class="length-value" id="aiMomentsLabel">3</span>
+        <details class="more">
+          <summary>Erweitert: Videoszenen &amp; KI-Videomodelle</summary>
+          <div class="models" id="modelsMain"></div>
+          <div id="momentsRow" hidden style="margin-top:10px">
+            <div class="lenrow"><label class="title" for="aiMoments">KI-Szenen pro Video</label><span class="length-value" id="aiMomentsLabel">3</span></div>
+            <input type="range" id="aiMoments" min="1" max="4" step="1" value="3">
           </div>
-          <input type="range" id="aiMoments" min="1" max="4" step="1" value="3">
-          <div class="ticks"><span>1 = nur Hook</span><span>Hook + Höhepunkte</span><span>4</span></div>
-        </div>
-        <details class="more" id="hybridModels">
-          <summary>Hybrid mit echten KI-Szenen – Modelle im Vergleich (🔒 wartet auf deine Freigabe)</summary>
-          <p class="note-small">Kosten für ein fertiges 45-s-Video mit <b id="momentsInfo">3</b> KI-Szenen,
-            inklusive Recherche &amp; Skript. Rest der Szenen: kostenlose Stockvideos.</p>
+          <p class="hint" style="text-align:left;margin:8px 0 0">🔒 Kostenpflichtige KI-Videomodelle (z. B. Seedance) werden erst nach deiner Zustimmung eingebaut.</p>
           <div class="models" id="modelsLocked"></div>
         </details>
 
+        <div class="step"><b>3</b> Planen &amp; erstellen</div>
         <div class="cost" id="cost">
           <h3><span>Voraussichtliche Kosten</span><span id="costTotal">…</span></h3>
           <ul id="costItems"></ul>
           <p class="note" id="costNote"></p>
           <p class="note" id="monthInfo"></p>
-          <label class="consent" id="consentRow" hidden>
-            <input type="checkbox" id="consent">
-            <span id="consentText"></span>
-          </label>
+          <label class="consent" id="consentRow" hidden><input type="checkbox" id="consent"><span id="consentText"></span></label>
         </div>
+        <div class="btnrow">
+          <button class="secondary" id="planBtn" type="button">👁 Szenen planen</button>
+          <button class="primary" id="submit" type="button">✨ Video erstellen</button>
+        </div>
+        <div class="notice warn" id="demoNotice"><b>Kostenloser Modus:</b> Ohne Claude-Schlüssel schreibt der eingebaute Generator die Skripte (fertige Bausteine, deine Idee fließt noch nicht ein). <button class="link" type="button" data-open-settings>Schlüssel eintragen</button></div>
+        <div class="notice err" id="errorBox"></div>
 
-        <button class="primary" id="submit" type="submit">✨ Video erstellen</button>
-      </form>
+        <div class="progress" id="progress">
+          <div class="progress-head"><span id="progressTitle">Video wird erstellt …</span><span id="progressPct">0 %</span></div>
+          <div class="bar"><div id="progressBar"></div></div>
+          <div class="progress-msg" id="progressMsg"></div>
+          <ul class="steps" id="steps">
+            <li data-from="0"><span class="dot"></span>Skript &amp; Qualitätsprüfung</li>
+            <li data-from="12"><span class="dot"></span>Stimmen aufnehmen</li>
+            <li data-from="26"><span class="dot"></span>Szenen &amp; Kulissen</li>
+            <li data-from="36"><span class="dot"></span>Schnitt, Grafiken, Untertitel, Musik</li>
+            <li data-from="95"><span class="dot"></span>Export &amp; Endkontrolle</li>
+          </ul>
+        </div>
+      </section>
 
-      <div class="notice warn" id="demoNotice">
-        <b>Testmodus ohne Claude:</b> Es wird ein fertiges Demo-Skript zur Erdrotation verwendet (0 $).
-        <button class="link" type="button" data-open-settings>Claude-Schlüssel eintragen</button>
-      </div>
-      <div class="notice err" id="errorBox"></div>
-
-      <div class="progress" id="progress">
-        <div class="progress-head"><span id="progressTitle">Video wird erstellt …</span><span id="progressPct">0 %</span></div>
-        <div class="bar"><div id="progressBar"></div></div>
-        <div class="progress-msg" id="progressMsg"></div>
-        <ul class="steps" id="steps">
-          <li data-from="0"><span class="dot"></span>Recherche, Faktencheck &amp; Skript</li>
-          <li data-from="15"><span class="dot"></span>KI-Stimme aufnehmen</li>
-          <li data-from="28"><span class="dot"></span>Videoszenen besorgen</li>
-          <li data-from="40"><span class="dot"></span>Schnitt, Untertitel, Musik &amp; Effekte</li>
-        </ul>
-      </div>
-    </section>
+      <section class="card plan" id="plan">
+        <h3 id="planTitle"></h3>
+        <div class="meta" id="planMeta"></div>
+        <ul class="scenes" id="planScenes"></ul>
+        <h4 style="margin:6px 0">Qualitätsprüfung des Skripts</h4>
+        <ul class="checks" id="planChecks"></ul>
+      </section>
+    </div>
 
     <aside class="card" id="resultCard">
       <div class="phone">
@@ -244,9 +275,12 @@
       <div class="notice warn" id="warnBox"></div>
       <div class="result-actions" id="actions">
         <a class="btn cta" id="download" href="#">⬇️ MP4 herunterladen</a>
-        <p class="hint">iPhone: Nach dem Laden in der Dateien-App öffnen → Teilen → „Video sichern“.</p>
+        <p class="hint">iPhone: In der Dateien-App öffnen → Teilen → „Video sichern“.</p>
+        <div class="teaser" id="teaser" style="display:none"></div>
+        <button class="btn" type="button" id="nextEpisode" style="display:none">▶ Nächste Folge planen</button>
         <div class="caption-box" id="caption"></div>
         <button class="btn" type="button" id="copyCaption">📋 Beschreibung &amp; Hashtags kopieren</button>
+        <div class="qc" id="qcBox" style="display:none"><h4 id="qcTitle">Qualitätskontrolle</h4><ul class="checks" id="qcList"></ul></div>
         <div class="sources" id="sources"></div>
       </div>
     </aside>
@@ -256,42 +290,32 @@
   <div class="gallery" id="gallery"><p class="empty">Noch keine Videos erstellt.</p></div>
 </div>
 
+<audio id="audio" preload="none"></audio>
+
 <dialog id="settings">
   <form method="dialog">
     <h3>Einstellungen</h3>
     <p>Schlüssel werden nur lokal auf deinem Computer in der Datei <code>.env</code> gespeichert. Leere Felder bleiben unverändert.</p>
     <div class="field">
-      <label for="anthropicKey">Claude-API-Schlüssel <span class="pill" id="anthropicStatus"></span></label>
+      <label class="title" for="anthropicKey">Claude-API-Schlüssel <span class="pill" id="anthropicStatus"></span></label>
       <input id="anthropicKey" type="password" autocomplete="off" placeholder="sk-ant-…">
-      <small>Für Recherche und Skript (je nach Modell ca. 0,03–0,50 $ pro Video). <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></small>
+      <small>Für frei geschriebene Skripte zu deiner Idee (je nach Modell ca. 0,01–0,50 $ pro Video). <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></small>
     </div>
     <div class="field">
-      <label for="pexelsKey">Pexels-API-Schlüssel <span class="pill" id="pexelsStatus"></span></label>
+      <label class="title" for="pexelsKey">Pexels-API-Schlüssel <span class="pill" id="pexelsStatus"></span></label>
       <input id="pexelsKey" type="password" autocomplete="off" placeholder="kostenlos">
-      <small>Für echte, bewegte Stockvideos. Kostenlos: <a href="https://www.pexels.com/api/" target="_blank" rel="noopener">pexels.com/api</a></small>
+      <small>Für echte Stockvideos (Fakten-Doku, Du entscheidest). Kostenlos: <a href="https://www.pexels.com/api/" target="_blank" rel="noopener">pexels.com/api</a></small>
     </div>
     <div class="field">
-      <label for="voice">Stimme</label>
-      <select id="voice">
-        <option value="de-DE-FlorianMultilingualNeural">Florian – natürlich, männlich (empfohlen)</option>
-        <option value="de-DE-SeraphinaMultilingualNeural">Seraphina – natürlich, weiblich</option>
-        <option value="de-DE-ConradNeural">Conrad – männlich</option>
-        <option value="de-DE-KatjaNeural">Katja – weiblich</option>
-        <option value="de-DE-KillianNeural">Killian – männlich</option>
-        <option value="de-DE-AmalaNeural">Amala – weiblich</option>
-      </select>
-      <small id="musicInfo"></small>
-    </div>
-    <div class="field">
-      <label for="claudeModel">Claude-Modell für Recherche &amp; Skript</label>
+      <label class="title" for="claudeModel">Claude-Modell</label>
       <select id="claudeModel"></select>
-      <small>Der größte Kostenblock pro Video. Günstigere Modelle sparen Geld, prüfen Fakten aber weniger gründlich.</small>
     </div>
     <div class="field">
-      <label for="budget">Monatsbudget (US-$)</label>
+      <label class="title" for="budget">Monatsbudget (US-$)</label>
       <input id="budget" type="number" inputmode="decimal" min="0" max="1000" step="1" placeholder="10">
-      <small id="budgetInfo">Ist das Budget erreicht, startet die App keine kostenpflichtigen Videos mehr.</small>
+      <small id="budgetInfo"></small>
     </div>
+    <small id="musicInfo" style="color:var(--muted)"></small>
     <div class="dialog-actions">
       <button class="icon-btn" value="cancel" formnovalidate>Abbrechen</button>
       <button class="primary" id="saveSettings" value="default">Speichern</button>
@@ -301,243 +325,261 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const topic = $("topic"), seconds = $("seconds"), factCheck = $("factCheck"), aiMoments = $("aiMoments");
-let pollTimer = null, models = [], selectedModel = "stock", currentEstimate = null;
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
 const usd = (v) => v === 0 ? "0 $" : (v < 0.01 ? "<0,01" : v.toFixed(2).replace(".", ",")) + " $";
 const range = (a, b) => a === b ? usd(a) : `${usd(a).replace(" $", "")}–${usd(b)}`;
-const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-                set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+const ACCENTS = { imposter: "#ff4060", cctv: "#46ff8c", entscheidung: "#25f4ee", krimi: "#ffb84d", level: "#ffd64d", fakten: "#ff2d6f" };
+const KIND_DE = { hook: "Hook", narration: "Erzähler", statement: "Aussage", clue: "Hinweis", countdown: "Countdown", choice: "Auswahl", reveal: "Auflösung", level: "Level", rule: "Regel", cctv: "Kamera", evidence: "Beweis", suspect: "Verdächtig", cliffhanger: "Cliffhanger", teaser: "Vorschau" };
+let OPT = null, fmt = store.get("fmt") || "imposter", subStyle = null, models = [], mode = "stock", estimate = null, planId = null, pollTimer = null, chosen = null, seriesList = [];
 
-seconds.addEventListener("input", () => { $("secondsLabel").textContent = seconds.value; refreshEstimate(); });
-factCheck.addEventListener("change", refreshEstimate);
-aiMoments.addEventListener("input", () => {
-  $("aiMomentsLabel").textContent = aiMoments.value; $("momentsInfo").textContent = aiMoments.value;
-  refreshEstimate(); loadModels();
-});
-async function loadModels() {
-  models = await (await fetch("/api/models?ai_moments=" + aiMoments.value)).json();
-  renderModels();
+function spec() { return OPT.formats.find(f => f.key === fmt) || OPT.formats[0]; }
+function params() {
+  return { format: fmt, topic: $("topic").value.trim(), seconds: +$("seconds").value, voice: $("voice").value, voice_style: $("voiceStyle").value,
+    music_style: $("music").value, subtitle_style: subStyle, fact_check: $("factCheck").checked, mode, ai_moments: +$("aiMoments").value,
+    series_id: $("seriesOn").checked && $("seriesSel").value !== "__new" ? $("seriesSel").value : null, choice: chosen };
 }
-document.querySelectorAll(".chip").forEach(c =>
-  c.addEventListener("click", () => { topic.value = c.textContent.replace(/^\S+\s/, ""); }));
+function showError(m) { $("errorBox").textContent = m; $("errorBox").classList.toggle("show", !!m); }
+function showWarnings(list) { const b = $("warnBox"); b.replaceChildren(...list.map(w => Object.assign(document.createElement("div"), { textContent: "⚠️ " + w }))); b.classList.toggle("show", list.length > 0); }
 
-let bestValue = null;
-function renderModels() {
-  bestValue = models.filter(m => !m.integrated && m.tier === "hybrid").sort((a, b) => a.total_max - b.total_max)[0]?.key;
-  const card = (m) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "model" + (m.integrated ? "" : " locked") + (m.key === selectedModel ? " selected" : "");
-    const price = m.usd_per_second === 0 ? "0 $" : (m.integrated ? "" : "🔒 ") + range(m.total_min, m.total_max);
-    b.innerHTML = `<span class="dot"></span><span><span class="name"></span><br>
-      <span class="meta"><span class="stars"></span> · <span class="prov"></span> · <span class="res"></span></span></span>
-      <span class="price"></span>`;
-    b.querySelector(".name").textContent = m.name;
-    if (m.key === bestValue) b.querySelector(".name").insertAdjacentHTML("beforeend", '<span class="tag">günstigste Wahl</span>');
-    if (m.usd_per_second) b.querySelector(".res").textContent = `${m.resolution} · ${m.billed_seconds}-s-Clips`;
-    b.querySelector(".stars").textContent = "★".repeat(m.quality) + "☆".repeat(5 - m.quality);
-    b.querySelector(".prov").textContent = m.provider;
-    if (!m.usd_per_second) b.querySelector(".res").textContent = m.resolution;
-    b.querySelector(".price").textContent = price;
-    b.title = m.notes + (m.integrated ? "" : " – Noch nicht eingebaut: wird erst nach deiner Zustimmung integriert.");
-    b.addEventListener("click", () => {
-      if (!m.integrated) { showError(`${m.name} ist noch nicht freigeschaltet. Ein fertiges 45-s-Video mit ${aiMoments.value} KI-Szenen kostet damit ca. ${range(m.total_min, m.total_max)}. Es wird erst nach deiner Zustimmung eingebaut.`); return; }
-      selectedModel = m.key; showError(""); renderModels(); refreshEstimate();
-    });
-    return b;
-  };
-  const locked = models.filter(m => !m.integrated).sort((a, b) => a.total_max - b.total_max);
-  $("modelsMain").replaceChildren(...models.filter(m => m.integrated).map(card));
-  $("modelsLocked").replaceChildren(...locked.map(card));
-  $("momentsRow").hidden = selectedModel === "stock";
+function renderFormats() {
+  $("formats").replaceChildren(...OPT.formats.map(f => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "fmt" + (f.key === fmt ? " sel" : ""); b.dataset.key = f.key;
+    b.innerHTML = `<span class="ico"></span><span class="nm"></span><span class="tg"></span>${f.episodic ? '<span class="series-tag">Serie</span>' : ""}`;
+    b.querySelector(".ico").textContent = f.icon; b.querySelector(".nm").textContent = f.name; b.querySelector(".tg").textContent = f.tagline;
+    b.addEventListener("click", () => selectFormat(f.key)); return b;
+  }));
+}
+function selectFormat(key) {
+  fmt = key; store.set("fmt", key); planId = null; $("plan").classList.remove("show");
+  const f = spec();
+  document.documentElement.style.setProperty("--accent", ACCENTS[key] || "#ff2d6f");
+  renderFormats();
+  $("topic").placeholder = f.idea_hint;
+  $("topicLabel").textContent = key === "fakten" ? "Deine Frage oder dein Thema" : "Eigene Idee (optional)";
+  $("seconds").value = f.default_seconds; $("secondsLabel").textContent = f.default_seconds;
+  $("voiceStyle").value = f.voice_style; $("music").value = f.music; setSub(f.subtitle_style);
+  $("factSwitch").style.display = f.research ? "" : "none";
+  $("seriesSwitch").style.display = f.episodic ? "" : "none";
+  if (!f.episodic) $("seriesOn").checked = false;
+  loadSeries(); refreshEstimate();
+}
+function setSub(id) { subStyle = id; document.querySelectorAll(".subopt").forEach(b => b.classList.toggle("sel", b.dataset.id === id)); }
+function renderSubs() {
+  $("subs").replaceChildren(...OPT.subtitle_styles.map(s => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "subopt " + s.id; b.dataset.id = s.id;
+    b.innerHTML = s.id === "clean" ? `<span>Das ist <i>neu</i></span>` : `<span>DAS IST <i>NEU</i></span>`;
+    b.append(Object.assign(document.createElement("small"), { textContent: s.name }));
+    b.addEventListener("click", () => setSub(s.id)); return b;
+  }));
+}
+function fill(sel, items) { $(sel).replaceChildren(...items.map(i => new Option(i.name, i.id))); }
+
+function stopAudio() { $("audio").pause(); document.querySelectorAll(".play").forEach(b => { b.classList.remove("on"); b.textContent = "▶"; }); }
+async function play(btn, getUrl) {
+  if (btn.classList.contains("on")) { stopAudio(); return; }
+  stopAudio(); btn.textContent = "…"; showError("");
+  try {
+    const url = await getUrl(); const a = $("audio"); a.src = url; await a.play();
+    btn.classList.add("on"); btn.textContent = "■"; a.onended = stopAudio;
+  } catch (e) { btn.textContent = "▶"; showError(e.message || "Probehören nicht möglich."); }
+}
+$("voicePlay").addEventListener("click", () => play($("voicePlay"), async () => {
+  const r = await fetch("/api/voice-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ voice: $("voice").value, voice_style: $("voiceStyle").value }) });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error); return j.url;
+}));
+$("musicPlay").addEventListener("click", () => play($("musicPlay"), async () => "/api/music-preview/" + $("music").value));
+
+async function loadSeries() {
+  if (!spec().episodic) { $("seriesBox").classList.remove("show"); return; }
+  seriesList = await (await fetch("/api/series?format=" + fmt)).json();
+  const sel = $("seriesSel"); const prev = sel.value;
+  sel.replaceChildren(...seriesList.map(s => new Option(`${s.name} – nächste Folge ${s.next_episode}`, s.id)), new Option("+ Neue Serie anlegen …", "__new"));
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  updateSeriesUI();
+}
+function updateSeriesUI() {
+  const on = $("seriesOn").checked; $("seriesBox").classList.toggle("show", on);
+  const s = seriesList.find(x => x.id === $("seriesSel").value);
+  $("newSeries").style.display = on && $("seriesSel").value === "__new" ? "" : "none";
+  $("seriesMeta").textContent = s ? (s.episodes ? `${s.episodes} Folgen bisher. ` : "Noch keine Folge. ") + (s.next_teaser ? `Angekündigt: ${s.next_teaser}` : "") + (s.open_threads.length ? ` Offene Cliffhanger: ${s.open_threads.join("; ")}` : "") : "";
+  $("choiceBox").style.display = s && fmt === "entscheidung" && s.pending_choices.length ? "" : "none";
+  planId = null;
+}
+$("seriesOn").addEventListener("change", updateSeriesUI);
+$("seriesSel").addEventListener("change", updateSeriesUI);
+document.querySelectorAll("#choiceBox button").forEach(b => b.addEventListener("click", () => { chosen = b.dataset.c; document.querySelectorAll("#choiceBox button").forEach(x => x.classList.toggle("sel", x === b)); }));
+async function ensureSeries() {
+  if (!$("seriesOn").checked || $("seriesSel").value !== "__new") return true;
+  const name = $("seriesName").value.trim(); if (!name) { showError("Bitte gib der neuen Serie einen Namen."); return false; }
+  const r = await fetch("/api/series", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, format: fmt, idea: $("topic").value }) });
+  const j = await r.json(); if (!r.ok) { showError(j.error); return false; }
+  await loadSeries(); $("seriesSel").value = j.id; updateSeriesUI(); return true;
 }
 
 async function refreshEstimate() {
   try {
-    const res = await fetch("/api/estimate", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seconds: +seconds.value, mode: selectedModel, fact_check: factCheck.checked,
-                             ai_moments: +aiMoments.value }) });
-    const est = await res.json();
-    currentEstimate = est;
+    const r = await fetch("/api/estimate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...params(), plan_id: planId }) });
+    const est = await r.json(); estimate = est;
     $("costTotal").textContent = est.paid ? `ca. ${range(est.total_min, est.total_max)}` : "kostenlos";
-    $("costItems").replaceChildren(...est.items.map(i => {
-      const li = document.createElement("li");
-      li.innerHTML = "<span></span><span></span>";
-      li.children[0].textContent = i.label;
-      li.children[1].textContent = range(i.min, i.max);
-      return li;
-    }));
+    $("costItems").replaceChildren(...est.items.map(i => { const li = document.createElement("li"); li.innerHTML = "<span></span><span></span>"; li.children[0].textContent = i.label; li.children[1].textContent = range(i.min, i.max); return li; }));
     $("costNote").textContent = `Schätzung in US-Dollar, Preise Stand ${est.prices_as_of}. Abgerechnet wird über deine eigenen API-Schlüssel.`;
-    $("consentRow").hidden = !est.paid;
-    $("consent").checked = false;
-    $("consentText").textContent = `Ich bin einverstanden, dass für dieses Video ca. ${range(est.total_min, est.total_max)} über meinen API-Schlüssel abgerechnet werden.`;
-    const m = est.month;
-    $("monthInfo").textContent = est.over_budget
-      ? `⛔ Monatsbudget reicht nicht: ${usd(m.spent)} von ${usd(m.budget)} verbraucht. Budget in den Einstellungen anpassen.`
-      : `Diesen Monat ausgegeben: ${usd(m.spent)} von ${usd(m.budget)} Budget.`;
+    $("monthInfo").textContent = est.over_budget ? `⛔ Monatsbudget reicht nicht: ${usd(est.month.spent)} von ${usd(est.month.budget)} verbraucht.` : `Diesen Monat ausgegeben: ${usd(est.month.spent)} von ${usd(est.month.budget)}.`;
     $("monthInfo").classList.toggle("over", !!est.over_budget);
-    updateButton();
+    $("consentRow").hidden = !est.paid; $("consent").checked = false;
+    $("consentText").textContent = `Ich bin einverstanden, dass ca. ${range(est.total_min, est.total_max)} über meinen API-Schlüssel abgerechnet werden.`;
+    updateButtons();
   } catch {}
 }
-$("consent").addEventListener("change", updateButton);
-function updateButton() {
-  const busy = $("submit").dataset.busy === "1";
-  $("submit").disabled = busy || !!currentEstimate?.over_budget || (currentEstimate?.paid && !$("consent").checked);
+function busy() { return $("submit").dataset.busy === "1"; }
+function updateButtons() {
+  const blocked = !!estimate?.over_budget || (estimate?.paid && !$("consent").checked);
+  $("submit").disabled = busy() || blocked; $("planBtn").disabled = busy() || blocked;
+}
+$("consent").addEventListener("change", updateButtons);
+["seconds", "voiceStyle", "factCheck"].forEach(id => $(id).addEventListener("input", () => { if (id === "seconds") $("secondsLabel").textContent = $("seconds").value; planId = null; refreshEstimate(); }));
+$("topic").addEventListener("input", () => { planId = null; });
+$("aiMoments").addEventListener("input", () => { $("aiMomentsLabel").textContent = $("aiMoments").value; refreshEstimate(); loadModels(); });
+
+async function loadModels() { models = await (await fetch("/api/models?ai_moments=" + $("aiMoments").value)).json(); renderModels(); }
+function renderModels() {
+  const card = (m) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.className = "model" + (m.integrated ? "" : " locked") + (m.key === mode ? " selected" : "");
+    b.innerHTML = `<span class="dot"></span><span><span class="name"></span><br><span class="meta"></span></span><span class="price"></span>`;
+    b.querySelector(".name").textContent = m.name;
+    b.querySelector(".meta").textContent = `${"★".repeat(m.quality)}${"☆".repeat(5 - m.quality)} · ${m.provider}`;
+    b.querySelector(".price").textContent = m.usd_per_second === 0 ? "0 $" : (m.integrated ? "" : "🔒 ") + range(m.total_min, m.total_max);
+    b.addEventListener("click", () => {
+      if (!m.integrated) { showError(`${m.name} ist noch nicht freigeschaltet (ca. ${range(m.total_min, m.total_max)} pro Video). Es wird erst nach deiner Zustimmung eingebaut.`); return; }
+      mode = m.key; showError(""); renderModels(); refreshEstimate();
+    });
+    return b;
+  };
+  $("modelsMain").replaceChildren(...models.filter(m => m.integrated).map(card));
+  $("modelsLocked").replaceChildren(...models.filter(m => !m.integrated).sort((a, b) => a.total_max - b.total_max).map(card));
+  $("momentsRow").hidden = mode === "stock";
 }
 
-function showError(msg) { const b = $("errorBox"); b.textContent = msg; b.classList.toggle("show", !!msg); }
-function showWarnings(list) {
-  const b = $("warnBox"); b.replaceChildren(...list.map(w => { const d = document.createElement("div"); d.textContent = "⚠️ " + w; return d; }));
-  b.classList.toggle("show", list.length > 0);
+function renderPlan(p) {
+  $("plan").classList.add("show");
+  $("planTitle").textContent = (p.episode ? `Folge ${p.episode}: ` : "") + p.title;
+  const chars = p.characters.map(c => c.name + (c.role ? ` (${c.role})` : "")).join(", ");
+  $("planMeta").textContent = `ca. ${p.est_seconds} s · ${p.scenes.length} Szenen` + (p.setting ? ` · ${p.setting}` : "") + (chars ? ` · Figuren: ${chars}` : "");
+  $("planScenes").replaceChildren(...p.scenes.map(s => {
+    const li = document.createElement("li"); li.innerHTML = `<span class="kind ${s.kind}"></span><span><span class="sp"></span><span class="tx"></span><span class="os"></span></span>`;
+    li.querySelector(".kind").textContent = KIND_DE[s.kind] || s.kind;
+    li.querySelector(".sp").textContent = s.speaker ? s.speaker + ": " : "";
+    li.querySelector(".tx").textContent = s.text;
+    li.querySelector(".os").textContent = s.on_screen && s.on_screen !== s.text ? "Im Bild: " + s.on_screen.replaceAll("|", " · ") : "";
+    return li;
+  }));
+  renderChecks($("planChecks"), p.checks);
+  $("plan").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
-
-function setProgress(job) {
-  const pct = job.progress || 0;
-  $("progress").classList.add("show");
-  $("progressBar").style.width = pct + "%";
-  $("progressPct").textContent = pct + " %";
-  $("progressMsg").textContent = job.message || "";
-  const items = [...document.querySelectorAll("#steps li")];
-  items.forEach((li, i) => {
-    const from = +li.dataset.from, next = items[i + 1] ? +items[i + 1].dataset.from : 100;
-    li.classList.toggle("done", pct >= next || job.status === "done");
-    li.classList.toggle("active", job.status === "running" && pct >= from && pct < next);
-  });
+function renderChecks(ul, checks) {
+  const ICON = { ok: "✅", fixed: "🛠️", warn: "⚠️", fail: "❌" };
+  ul.replaceChildren(...checks.map(c => { const li = document.createElement("li"); li.innerHTML = `<span class="st"></span><span><b></b> <span class="d"></span></span>`; li.querySelector(".st").textContent = ICON[c.status] || "•"; li.querySelector("b").textContent = c.name; li.querySelector(".d").textContent = c.detail ? "– " + c.detail : ""; return li; }));
 }
-
-function showVideo(video, sources = []) {
-  const player = $("player");
-  player.src = video.url + "?t=" + Date.now();
-  player.style.display = "block";
-  $("placeholder").style.display = "none";
-  $("download").href = video.download_url;
-  $("download").setAttribute("download", video.name);
-  $("caption").textContent = video.caption || video.title;
-  const src = $("sources");
-  src.replaceChildren();
-  if (sources.length) {
-    const h = document.createElement("h4"); h.textContent = "🔎 Geprüfte Quellen";
-    const ol = document.createElement("ol");
-    for (const s of sources) {
-      const li = document.createElement("li"), a = document.createElement("a");
-      a.href = s.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = s.title || s.url;
-      li.append(a); ol.append(li);
-    }
-    src.append(h, ol);
-  }
-  $("actions").classList.add("show");
-}
-
-function setBusy(busy) {
-  $("submit").dataset.busy = busy ? "1" : "0";
-  $("submit").textContent = busy ? "⏳ Wird erstellt …" : "✨ Video erstellen";
-  updateButton();
-}
-
-$("form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  showError(""); showWarnings([]);
-  const text = topic.value.trim();
-  if (!text) { showError("Bitte gib eine Frage oder ein Thema ein."); return; }
-  if (currentEstimate?.paid && !$("consent").checked) { showError("Bitte bestätige zuerst die Kosten."); return; }
-  setBusy(true);
-  $("progressTitle").textContent = "Video wird erstellt …";
-  setProgress({ progress: 0, status: "queued", message: "Wird gestartet …" });
+$("planBtn").addEventListener("click", async () => {
+  showError(""); if (!(await ensureSeries())) return;
+  $("planBtn").disabled = true; $("planBtn").textContent = "⏳ Plane …";
   try {
-    const res = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic: text, seconds: +seconds.value, mode: selectedModel, ai_moments: +aiMoments.value,
-                             fact_check: factCheck.checked, confirm_cost: $("consent").checked }) });
-    const job = await res.json();
-    if (!res.ok) throw new Error(job.error || "Fehler beim Starten.");
-    store.set("currentJob", job.id);
-    poll(job.id);
-  } catch (err) { setBusy(false); showError(err.message); }
+    const r = await fetch("/api/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...params(), confirm_cost: $("consent").checked }) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || "Planen fehlgeschlagen.");
+    planId = j.plan_id; renderPlan(j); refreshEstimate();
+  } catch (e) { showError(e.message); }
+  $("planBtn").textContent = "👁 Szenen planen"; updateButtons();
 });
 
+function setBusy(b) { $("submit").dataset.busy = b ? "1" : "0"; $("submit").textContent = b ? "⏳ Wird erstellt …" : "✨ Video erstellen"; updateButtons(); }
+function setProgress(job) {
+  const pct = job.progress || 0; $("progress").classList.add("show");
+  $("progressBar").style.width = pct + "%"; $("progressPct").textContent = pct + " %"; $("progressMsg").textContent = job.message || "";
+  const items = [...document.querySelectorAll("#steps li")];
+  items.forEach((li, i) => { const from = +li.dataset.from, next = items[i + 1] ? +items[i + 1].dataset.from : 101;
+    li.classList.toggle("done", pct >= next || job.status === "done"); li.classList.toggle("active", job.status === "running" && pct >= from && pct < next); });
+}
+$("submit").addEventListener("click", async () => {
+  showError(""); showWarnings([]);
+  const p = params(); if (fmt === "fakten" && !p.topic && !planId) { showError("Bitte gib eine Frage oder ein Thema ein."); return; }
+  if (!(await ensureSeries())) return;
+  setBusy(true); $("progressTitle").textContent = "Video wird erstellt …"; setProgress({ progress: 0, status: "queued", message: "Wird gestartet …" });
+  try {
+    const r = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...params(), plan_id: planId, confirm_cost: $("consent").checked }) });
+    const job = await r.json(); if (!r.ok) throw new Error(job.error || "Fehler beim Starten.");
+    planId = null; store.set("currentJob", job.id); poll(job.id);
+  } catch (e) { setBusy(false); showError(e.message); }
+});
 function poll(id) {
   clearTimeout(pollTimer);
   pollTimer = setTimeout(async () => {
     try {
-      const res = await fetch("/api/jobs/" + id);
-      if (res.status === 404) { store.set("currentJob", null); setBusy(false); return; }
-      const job = await res.json();
-      setProgress(job);
+      const r = await fetch("/api/jobs/" + id); if (r.status === 404) { store.set("currentJob", null); setBusy(false); return; }
+      const job = await r.json(); setProgress(job);
       if (job.status === "done") {
         store.set("currentJob", null);
         $("progressTitle").textContent = `✅ Fertig – ${job.duration} s` + (job.cost_usd ? ` · Kosten: ${usd(job.cost_usd)}` : " · kostenlos");
-        showVideo(job.video, job.sources || []); showWarnings(job.warnings || []);
-        setBusy(false); loadGallery();
-        if (innerWidth < 860) $("resultCard").scrollIntoView({ behavior: "smooth" });
-      } else if (job.status === "error") {
-        store.set("currentJob", null);
-        $("progressTitle").textContent = "Abgebrochen"; showError(job.message); setBusy(false);
-      } else poll(id);
-    } catch { poll(id); }  // z. B. iPhone kurz gesperrt → einfach weiter versuchen
+        showResult(job); setBusy(false); loadGallery(); loadSeries(); refreshEstimate();
+        if (innerWidth < 900) $("resultCard").scrollIntoView({ behavior: "smooth" });
+      } else if (job.status === "error") { store.set("currentJob", null); $("progressTitle").textContent = "Abgebrochen"; showError(job.message); setBusy(false); }
+      else poll(id);
+    } catch { poll(id); }
   }, 1000);
 }
-
+function showVideo(video) {
+  const p = $("player"); p.src = video.url + "?t=" + Date.now(); p.style.display = "block"; $("placeholder").style.display = "none";
+  $("download").href = video.download_url; $("download").setAttribute("download", video.name);
+  $("caption").textContent = video.caption || video.title; $("actions").classList.add("show");
+}
+function showResult(job) {
+  showVideo(job.video); showWarnings(job.warnings || []);
+  const qc = job.qc || []; $("qcBox").style.display = qc.length ? "" : "none"; $("qcTitle").textContent = "Qualitätskontrolle: " + (job.qc_summary || ""); renderChecks($("qcList"), qc);
+  const t = $("teaser"); t.style.display = job.next_teaser ? "" : "none"; t.textContent = job.next_teaser ? "🔜 Vorschau: " + job.next_teaser : "";
+  $("nextEpisode").style.display = job.series_id ? "" : "none"; $("nextEpisode").dataset.series = job.series_id || "";
+  const src = $("sources"); src.replaceChildren();
+  if ((job.sources || []).length) { const ol = document.createElement("ol"); for (const s of job.sources) { const li = document.createElement("li"), a = document.createElement("a"); a.href = s.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = s.title || s.url; li.append(a); ol.append(li); } src.append(Object.assign(document.createElement("h4"), { textContent: "🔎 Quellen" }), ol); }
+}
+$("nextEpisode").addEventListener("click", async () => {
+  $("seriesOn").checked = true; await loadSeries(); $("seriesSel").value = $("nextEpisode").dataset.series; updateSeriesUI();
+  window.scrollTo({ top: 0, behavior: "smooth" }); $("planBtn").click();
+});
 $("copyCaption").addEventListener("click", async () => {
-  try { await navigator.clipboard.writeText($("caption").textContent); $("copyCaption").textContent = "✅ Kopiert!"; }
-  catch { $("copyCaption").textContent = "Bitte manuell markieren & kopieren"; }
+  try { await navigator.clipboard.writeText($("caption").textContent); $("copyCaption").textContent = "✅ Kopiert!"; } catch { $("copyCaption").textContent = "Bitte manuell kopieren"; }
   setTimeout(() => $("copyCaption").textContent = "📋 Beschreibung & Hashtags kopieren", 2000);
 });
-
 async function loadGallery() {
-  const videos = await (await fetch("/api/videos")).json();
-  const g = $("gallery");
+  const videos = await (await fetch("/api/videos")).json(); const g = $("gallery");
   if (!videos.length) { g.innerHTML = '<p class="empty">Noch keine Videos erstellt.</p>'; return; }
-  g.replaceChildren(...videos.map(v => {
-    const b = document.createElement("button");
-    b.className = "thumb"; b.type = "button"; b.title = v.title;
-    const vid = document.createElement("video");
-    vid.src = v.url + "#t=1.5"; vid.preload = "metadata"; vid.muted = true; vid.playsInline = true;
-    const t = document.createElement("div"); t.textContent = v.title;
-    b.append(vid, t);
-    b.addEventListener("click", () => { showVideo(v); showWarnings([]); $("resultCard").scrollIntoView({ behavior: "smooth" }); });
-    return b;
-  }));
+  g.replaceChildren(...videos.map(v => { const b = document.createElement("button"); b.className = "thumb"; b.type = "button"; b.title = v.title;
+    const vid = document.createElement("video"); vid.src = v.url + "#t=1.5"; vid.preload = "metadata"; vid.muted = true; vid.playsInline = true;
+    b.append(vid, Object.assign(document.createElement("div"), { textContent: v.title }));
+    b.addEventListener("click", () => { showVideo(v); showWarnings([]); $("qcBox").style.display = "none"; $("teaser").style.display = "none"; $("nextEpisode").style.display = "none"; $("resultCard").scrollIntoView({ behavior: "smooth" }); }); return b; }));
 }
 
 async function loadSettings() {
   const s = await (await fetch("/api/settings")).json();
   $("demoNotice").classList.toggle("show", !s.has_anthropic_key);
   const pill = (el, on) => { el.textContent = on ? "gespeichert" : "fehlt"; el.className = "pill " + (on ? "on" : "off"); };
-  pill($("anthropicStatus"), s.has_anthropic_key);
-  pill($("pexelsStatus"), s.has_pexels_key);
-  const sel = $("voice");
-  if (![...sel.options].some(o => o.value === s.voice)) sel.add(new Option(s.voice, s.voice));
-  sel.value = s.voice;
-  const cm = $("claudeModel");
-  cm.replaceChildren(...s.claude_models.map(([k, v]) => new Option(v, k)));
-  cm.value = s.claude_model;
-  $("budget").value = s.month.budget;
-  $("budgetInfo").textContent = `Diesen Monat ausgegeben: ${usd(s.month.spent)}. Ist das Budget erreicht, startet die App keine kostenpflichtigen Videos mehr.`;
-  $("musicInfo").textContent = s.music_count
-    ? `🎵 ${s.music_count} eigene Musikstücke in assets/music gefunden.`
-    : "🎵 Keine eigene Musik – es wird automatisch ein Doku-Klangteppich erzeugt.";
-  return s;
+  pill($("anthropicStatus"), s.has_anthropic_key); pill($("pexelsStatus"), s.has_pexels_key);
+  $("claudeModel").replaceChildren(...s.claude_models.map(([k, v]) => new Option(v, k))); $("claudeModel").value = s.claude_model;
+  $("budget").value = s.month.budget; $("budgetInfo").textContent = `Diesen Monat ausgegeben: ${usd(s.month.spent)}. Ist das Budget erreicht, startet nichts Kostenpflichtiges mehr.`;
+  $("musicInfo").textContent = s.music_count ? `🎵 ${s.music_count} eigene Musikstücke in assets/music gefunden.` : "🎵 Musik wird automatisch passend zum Format komponiert (lizenzfrei). Eigene Stücke mit Nutzungsrechten: assets/music/<stil>/";
 }
-
 const dialog = $("settings");
-document.querySelectorAll("#openSettings, [data-open-settings]").forEach(b =>
-  b.addEventListener("click", () => { loadSettings(); dialog.showModal(); }));
+document.querySelectorAll("#openSettings, [data-open-settings]").forEach(b => b.addEventListener("click", () => { loadSettings(); dialog.showModal(); }));
 $("saveSettings").addEventListener("click", async (e) => {
   e.preventDefault();
-  await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ANTHROPIC_API_KEY: $("anthropicKey").value, PEXELS_API_KEY: $("pexelsKey").value,
-                           TTS_VOICE: $("voice").value, CLAUDE_MODEL: $("claudeModel").value,
-                           MONTHLY_BUDGET_USD: String($("budget").value) }) });
-  $("anthropicKey").value = ""; $("pexelsKey").value = "";
-  await loadSettings(); refreshEstimate(); loadModels(); dialog.close();
+  await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ANTHROPIC_API_KEY: $("anthropicKey").value, PEXELS_API_KEY: $("pexelsKey").value, CLAUDE_MODEL: $("claudeModel").value, MONTHLY_BUDGET_USD: String($("budget").value) }) });
+  $("anthropicKey").value = ""; $("pexelsKey").value = ""; await loadSettings(); refreshEstimate(); loadModels(); dialog.close();
 });
 
 (async () => {
-  await loadModels();
-  await loadSettings();
-  refreshEstimate();
-  loadGallery();
-  const running = store.get("currentJob");      // nach Neuladen weiter den Fortschritt zeigen
-  if (running) { setBusy(true); poll(running); }
+  OPT = await (await fetch("/api/options")).json();
+  fill("voice", OPT.voices); fill("voiceStyle", OPT.voice_styles); fill("music", OPT.music_styles); renderSubs();
+  $("voice").value = OPT.default_voice;
+  if (!OPT.formats.some(f => f.key === fmt)) fmt = "imposter";
+  await loadModels(); await loadSettings(); selectFormat(fmt); loadGallery();
+  const running = store.get("currentJob"); if (running) { setBusy(true); poll(running); }
 })();
 </script>
 </body>

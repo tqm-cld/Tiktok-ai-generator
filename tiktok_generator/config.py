@@ -20,6 +20,7 @@ class Config:
     fps: int = 30
     min_seconds: int = 30
     max_seconds: int = 60
+    default_seconds: int = 40   # Standard: 30–45 Sekunden
 
     # --- API-Schlüssel (leer = Demo-Modus) ---
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))
@@ -41,8 +42,8 @@ class Config:
 
     # --- Untertitel ---
     words_per_caption: int = 3
-    font_size: int = 95
-    caption_y: float = 0.62    # vertikale Position (0 = oben, 1 = unten)
+    font_size: int = 88
+    caption_y: float = 0.635   # vertikale Position (0 = oben, 1 = unten) – oberhalb von TikToks Beschreibung
 
     # --- Ordner ---
     music_dir: Path = PROJECT_ROOT / "assets" / "music"

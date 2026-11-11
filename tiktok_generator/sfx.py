@@ -78,7 +78,59 @@ def tick(seed: int = 4) -> np.ndarray:
     return _stereo(out, 0.5)
 
 
-EFFECTS = {"whoosh": whoosh, "impact": impact, "boom": boom, "riser": riser, "tick": tick}
+def clue(seed: int = 5) -> np.ndarray:
+    """Heller, kurzer Doppelton – „Hinweis entdeckt“."""
+    out = np.zeros(int(0.9 * RATE))
+    for start, f in ((0.0, 880.0), (0.12, 1318.5)):
+        t = _t(0.9 - start)
+        tone = (np.sin(2 * np.pi * f * t) + 0.3 * np.sin(2 * np.pi * 2 * f * t)) * np.exp(-t * 6)
+        i = int(start * RATE)
+        out[i:i + len(tone)] += tone[:len(out) - i]
+    return _stereo(out, 0.45)
+
+
+def countdown(seed: int = 6) -> np.ndarray:
+    """Ein tiefer Uhr-Schlag pro Sekunde (3 Schläge) – passend zur 3-2-1-Anzeige."""
+    out = np.zeros(int(3.0 * RATE))
+    for k in range(3):
+        t = _t(0.35)
+        f = 520 if k < 2 else 780
+        tone = np.sin(2 * np.pi * f * t) * np.exp(-t * 26) + 0.6 * np.sin(2 * np.pi * 90 * t) * np.exp(-t * 14)
+        i = int(k * RATE)
+        out[i:i + len(tone)] += tone
+    return _stereo(out, 0.55)
+
+
+def choice(seed: int = 7) -> np.ndarray:
+    """Weicher „Pop“ für Entscheidungs-Karten."""
+    t = _t(0.4)
+    f = 300 + 500 * np.exp(-t * 20)
+    tone = np.sin(2 * np.pi * np.cumsum(f) / RATE) * np.exp(-t * 9)
+    return _stereo(tone, 0.4)
+
+
+def reveal(seed: int = 8) -> np.ndarray:
+    """Auflösung: tiefer Schlag + heller Akkord, der ausklingt."""
+    rng = np.random.default_rng(seed)
+    t = _t(2.2)
+    hit = np.sin(2 * np.pi * (60 * t - 10 * t ** 2)) * np.exp(-t * 3.5)
+    chord = sum(np.sin(2 * np.pi * f * t) for f in (440.0, 554.4, 659.3, 880.0)) * np.exp(-t * 1.6) * 0.25
+    shimmer = _band_noise(len(t), 3000, 9000, rng) * np.exp(-t * 4) * 0.15
+    return _stereo(hit + chord + shimmer, 0.8)
+
+
+def glitch(seed: int = 9) -> np.ndarray:
+    """Kamera-Störung: kurzes, zerhacktes Rauschen."""
+    rng = np.random.default_rng(seed)
+    t = _t(0.6)
+    noise = _band_noise(len(t), 400, 6000, rng)
+    gate = (np.sin(2 * np.pi * 23 * t) > 0.2).astype(float) * np.exp(-t * 3)
+    hum = np.sin(2 * np.pi * 120 * t) * 0.3
+    return _stereo((noise + hum) * gate, 0.35)
+
+
+EFFECTS = {"whoosh": whoosh, "impact": impact, "boom": boom, "riser": riser, "tick": tick,
+           "clue": clue, "countdown": countdown, "choice": choice, "reveal": reveal, "glitch": glitch}
 
 
 def effect_clip(name: str, start: float, volume: float = 1.0):

@@ -1,53 +1,50 @@
-# Projektstand (10. November 2026)
+# Projektstand (11. November 2026)
 
 ## Was fertig ist
 
-- **Web-App** (`app.py`, Flask): Frage eingeben → fertiges 9:16-MP4 (30–60 s) ansehen und herunterladen,
-  mit Fortschrittsanzeige, Galerie und Einstellungen. Fürs iPhone optimiert (Home-Bildschirm-App).
-- **Pipeline** (`tiktok_generator/`):
-  - Recherche mit Faktencheck (Claude + Websuche) und Skript mit Hook
-  - KI-Stimme (Microsoft Edge TTS, kostenlos)
-  - Stockvideos (Pexels, kostenlos)
-  - dynamischer Schnitt, wortgenaue Untertitel, Soundeffekte und Musik
-- **Kostenschutz:**
-  - Kostenschätzung und Zustimmung vor jedem Video, zusätzlich vom Server geprüft
-  - echte Claude-Kosten werden erfasst, mit Ausgabenbuch und Monatsbudget
-  - Claude-Modell in den Einstellungen wählbar
-- **Hybrid-Modus vorbereitet:**
-  - Das Skript markiert 1–4 KI-Momente.
-  - Eine kostenlose „Hybrid-Vorschau“ markiert diese Momente im Video.
-  - Die Schnittstelle für KI-Videoanbieter steht (`AI_PROVIDERS` in `visuals.py`), aber **es ist noch kein Modell eingebaut**.
-- **Hosting:**
-  - GitHub Codespaces (kostenlos, `.devcontainer/`), Anleitung in `docs/IPHONE-HOSTING.md`
-  - Hugging Face nur mit PRO-Abo (`deploy/huggingface/`)
+- **6 Formate:** Finde den Imposter, Mysteriöse Überwachungskamera, Du entscheidest, Unmöglicher Kriminalfall,
+  Das unendliche Level, Fakten-Doku – je mit eigener Dramaturgie, Kulisse, Grafik, Musik, Sprechweise und Untertitelstil
+  (`tiktok_generator/formats.py`).
+- **Kostenloser Skript-Generator** für alle Rätsel-Formate, logisch geprüft, mit Serien-Unterstützung (`offline.py`).
+  Mit Claude-Schlüssel: frei geschriebene Skripte zur eigenen Idee inkl. Seriengedächtnis (`story.py`).
+- **Serien:** Figuren, Regeln, Cliffhanger, Vorschau, keine Wiederholungen (`series.py`, Daten in `data/series/`).
+- **Render-Pipeline:** 1080 × 1920, gezeichnete Kulissen (`scenes.py`), Grafiken in sicheren Zonen (`overlays.py`),
+  4 Untertitelstile (`subtitles.py`), Kamerafahrten/Farblooks (`video.py`).
+- **Audio:** 10 Stimmen + Sprechweisen + Figurenstimmen, 6 selbst komponierte Musikstile, Soundeffekte, Ducking,
+  Normalisierung, Limiter (`audio.py`, `sfx.py`, `voice.py`).
+- **Qualitätskontrolle** vor und nach dem Export mit Auto-Korrektur (`qc.py`).
+- **Web-App** (`app.py`, `templates/index.html`): Formatkarten, Probehören, Serienmodus, Szenenvorschau, Kosten,
+  Fortschritt, QC-Bericht, nächste Folge; iPhone-tauglich, Zugangscode im WLAN.
+- **Kostenschutz:** Zustimmung vor jedem kostenpflichtigen Schritt (auch beim Planen), Monatsbudget, Ausgabenbuch.
+- Hybrid-Modus vorbereitet, **kein** kostenpflichtiges KI-Videomodell eingebaut.
+
+Details und ehrlicher Funktionsstatus: `docs/FORMATE.md`.
 
 ## Offene Aufgaben
 
-1. **Kostenloser Test am echten iPhone** über Codespaces (noch nicht durchgeführt).
-2. **Stimme und Pexels-Videos** unter echten Bedingungen prüfen. In der bisherigen Testumgebung waren diese Dienste gesperrt.
-3. **Claude-Schlüssel eintragen** ⚠️ *kostenpflichtig, ca. 0,03–0,50 $ pro Video, vorher Zustimmung*: erst dann wird dein Prompt wirklich umgesetzt.
-4. **Seedance 1.5 Pro einbauen** ⚠️ *kostenpflichtig, ca. 0,31–0,37 $ pro Video, erst nach Zustimmung*:
-   Konto bei BytePlus, ein Testclip (ca. 0,10–0,13 $), dann die Preise in `costs.py` korrigieren
-   (siehe `docs/KI-VIDEOMODELLE.md`).
-5. Optional: Zugriff von unterwegs (z. B. Tailscale), wenn die App auf dem eigenen PC läuft.
+1. **Auf Windows testen** (siehe unten): ein Video pro Format erstellen, Stimme hören, Download prüfen.
+2. **Stimmen und Pexels** unter echten Bedingungen prüfen (in der Entwicklungsumgebung gesperrt).
+3. ⚠️ *kostenpflichtig, nur mit Zustimmung:* Claude-Schlüssel eintragen und die neuen Formate mit eigener Idee testen
+   (ca. 0,01–0,15 $ pro Skript; Fakten-Doku 0,18–0,47 $).
+4. ⚠️ *kostenpflichtig, nur mit Zustimmung:* echtes KI-Videomodell (z. B. Seedance) einbauen.
+5. Optional: mehr Grundfälle für den kostenlosen Kriminalfall-Generator (derzeit 6).
 
 ## Auf Windows starten
 
-1. **Python 3.10+** von <https://www.python.org/downloads/> installieren und das Häkchen **„Add python.exe to PATH“** setzen.
-2. **Git** von <https://git-scm.com> installieren.
-3. Projekt holen, in PowerShell oder der Eingabeaufforderung:
+1. Python 3.10+ (Häkchen „Add python.exe to PATH“) und Git installieren.
+2. Bestehender Ordner aktualisieren – im Projektordner (z. B. `C:\tiktok_app`) in PowerShell:
+   ```
+   git pull origin claude/tiktok-ai-video-generator-m6ldsj
+   ```
+   (Falls der Ordner aus einem ZIP stammt: neu herunterladen bzw. `git clone …` wie unten und die Datei `.env` hinüberkopieren.)
+   Neu klonen:
    ```
    git clone https://github.com/tqm-cld/Tiktok-ai-generator.git
    cd Tiktok-ai-generator
    git checkout claude/tiktok-ai-video-generator-m6ldsj
    ```
-4. **Doppelklick auf `start.bat`**:
-   - Beim ersten Start wird alles automatisch installiert (1–3 Minuten).
-   - Danach öffnet sich der Browser mit <http://127.0.0.1:8765>.
-   - Fürs iPhone im selben WLAN: den QR-Code im schwarzen Fenster scannen.
-   - Die Windows-Firewall-Abfrage mit „Zulassen“ (private Netzwerke) beantworten.
-5. **Mit Claude Code weiterarbeiten:** im Projektordner `claude` starten und z. B. sagen:
-   *„Lies PROJEKTSTAND.md und README.md, dann machen wir mit Aufgabe 1 weiter.“*
+3. **Doppelklick auf `start.bat`** → Browser öffnet <http://127.0.0.1:8765>. Keine neuen Pakete nötig.
+4. Mit Claude Code weiterarbeiten: im Projektordner `claude` starten und z. B. sagen:
+   *„Lies PROJEKTSTAND.md und docs/FORMATE.md, dann testen wir die Formate auf Windows.“*
 
-Schlüssel (Claude, Pexels) gehören in die Datei `.env` oder in ⚙️ Einstellungen. Sie werden **nie** auf GitHub
-hochgeladen (`.gitignore`). Weitere Details stehen in `README.md`.
+Schlüssel (Claude, Pexels) gehören in die Datei `.env` oder in ⚙️ Einstellungen – nie auf GitHub.

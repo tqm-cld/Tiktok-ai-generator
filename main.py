@@ -17,7 +17,13 @@ def main():
     parser = argparse.ArgumentParser(description="Erstellt automatisch TikTok-Kurzvideos mit KI.")
     parser.add_argument("topic", nargs="?", default="Was würde passieren, wenn die Erde 5 Sekunden aufhört, sich zu drehen?",
                         help="Worum soll die Geschichte gehen?")
-    parser.add_argument("--seconds", type=int, default=45, help="Gewünschte Länge (30-60 Sekunden)")
+    parser.add_argument("--seconds", type=int, default=40, help="Gewünschte Länge (30-60 Sekunden)")
+    parser.add_argument("--format", default="fakten",
+                        help="imposter | cctv | entscheidung | krimi | level | fakten")
+    parser.add_argument("--series", help="Serien-ID (nächste Folge dieser Serie)")
+    parser.add_argument("--choice", help="Du entscheidest: gewählte Option der letzten Folge (A/B/C)")
+    parser.add_argument("--subtitles", help="Untertitelstil: tiktok | mystery | clean | neon")
+    parser.add_argument("--music", help="Musikstil: spannung | ueberwachung | abenteuer | detektiv | level | doku")
     parser.add_argument("--count", type=int, default=1, help="Wie viele Videos erstellt werden sollen")
     parser.add_argument("--demo", action="store_true", help="Demo-Geschichte verwenden (kein API-Schlüssel nötig)")
     parser.add_argument("--voice", help="Andere Stimme, z.B. de-DE-SeraphinaMultilingualNeural")
@@ -37,11 +43,15 @@ def main():
         try:
             result = make_video(args.topic, cfg, seconds=seconds, demo=args.demo,
                                 fact_check=not args.no_factcheck, mode=args.mode,
-                                ai_moments=args.ai_moments)
+                                ai_moments=args.ai_moments, fmt=args.format, series_id=args.series,
+                                choice=args.choice, subtitle_style=args.subtitles, music_style=args.music)
         except StoryError as e:
             raise SystemExit(str(e))
         print(f"\n✅ Fertig: {result.video_path}  ({result.duration:.0f} s)")
         print(f"   TikTok-Beschreibung: {result.caption}")
+        print(f"   Qualitätskontrolle: {result.qc_summary}")
+        for c in result.qc:
+            print(f"     [{c['status']:5s}] {c['name']}: {c['detail']}")
 
 
 if __name__ == "__main__":

@@ -11,12 +11,16 @@ Die Quellen-Links stammen direkt aus der Websuche (nicht von Claude ausgedacht).
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from .config import Config
 from .costs import CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, claude_cost
 
-SfxName = Literal["none", "whoosh", "impact", "riser", "tick", "boom"]
+SfxName = Literal["none", "whoosh", "impact", "riser", "tick", "boom", "clue", "countdown", "choice", "reveal", "glitch"]
+
+# Szenentypen: bestimmen, welche Grafik über dem Bild liegt (siehe overlays.py)
+SceneKind = Literal["hook", "narration", "statement", "clue", "countdown", "choice", "reveal",
+                    "level", "rule", "cctv", "evidence", "suspect", "cliffhanger", "teaser"]
 
 
 class StoryError(RuntimeError):
@@ -25,17 +29,33 @@ class StoryError(RuntimeError):
 
 class Scene(BaseModel):
     text: str = Field(description="Gesprochener Text dieses Shots: 1 kurzer Satz, max. ca. 14 Wörter")
-    visual_query: str = Field(description="2-4 englische Stichwörter für die Stock-Video-Suche, z.B. 'earth from space'")
+    visual_query: str = Field(default="", description="2-4 englische Stichwörter für die Stock-Video-Suche, z.B. 'earth from space'")
     visual_prompt: str = Field(
-        description="Englischer, filmischer Prompt für ein KI-Video dieses Shots: Motiv, Bewegung, Kamera, Licht. "
+        default="", description="Englischer, filmischer Prompt für ein KI-Video dieses Shots: Motiv, Bewegung, Kamera, Licht. "
                     "Ohne Text/Schrift im Bild. z.B. 'slow aerial push-in over a stormy ocean, dramatic lighting'"
     )
-    sfx: SfxName = Field(description="Soundeffekt zu Beginn des Shots: impact/boom für Schock-Momente, "
-                                     "riser vor einer Enthüllung, tick für Zahlen/Zeit, whoosh für schnelle Wechsel, sonst none")
-    emphasis: str = Field(description="Das wichtigste Wort dieses Satzes (genau so geschrieben wie im Text), "
+    sfx: SfxName = Field(default="none", description="Soundeffekt zu Beginn des Shots: impact/boom für Schock-Momente, "
+                                     "riser vor einer Enthüllung, tick für Zahlen/Zeit, whoosh für schnelle Wechsel, "
+                                     "clue bei Hinweisen, countdown beim Countdown, choice bei Entscheidungen, "
+                                     "reveal bei der Auflösung, glitch bei Kamera-Störungen, sonst none")
+    emphasis: str = Field(default="", description="Das wichtigste Wort dieses Satzes (genau so geschrieben wie im Text), "
                                       "wird im Untertitel farbig hervorgehoben. Leer lassen, wenn keins.")
     ai_moment: bool = Field(default=False, description="true nur für die wichtigsten Momente (Hook, Schock/Höhepunkt, "
                                                        "Wendung) – nur diese bekommen eine KI-generierte Videoszene")
+    kind: SceneKind = Field(default="narration", description="Art des Shots – bestimmt die Grafik im Bild")
+    speaker: str = Field(default="", description="Name der Figur, die spricht (leer = Erzähler)")
+    on_screen: str = Field(default="", description="Kurzer Text für die Grafik im Bild (max. ca. 12 Wörter): "
+                                                   "Aussage, Hinweis, Regel, Countdown-Zahl, Uhrzeit …")
+    change: str = Field(default="", description="Nur Überwachungskamera: Objekt, das sich ab diesem Shot verändert hat "
+                                                "(door, chair, shadow, light, clock), sonst leer")
+    _optional: bool = PrivateAttr(default=False)
+
+
+class Character(BaseModel):
+    name: str
+    role: str = Field(default="", description="Rolle/Beruf, z. B. 'Ärztin'")
+    look: str = Field(default="", description="Kurze englische Beschreibung des Aussehens")
+    voice: str = Field(default="", description="Stimme (wird automatisch vergeben)")
 
 
 class Source(BaseModel):
@@ -51,6 +71,26 @@ class Story(BaseModel):
     sources: list[Source] = []
     fact_notes: str = ""
     script_cost_usd: float = 0.0          # tatsächliche Claude-Kosten (aus den Verbrauchsangaben der API)
+
+    # --- Formate & Serien ---
+    format: str = "fakten"
+    setting: str = ""                     # Schauplatz
+    characters: list[Character] = []
+    choices: list[str] = []               # "Du entscheidest": Antwortmöglichkeiten
+    solution: str = ""                    # Rätsel: Lösung in einem Satz
+    logic: list[str] = []                 # Rätsel: Schlussfolgerungskette (Hinweis → Schluss)
+    culprit: str = ""                     # Imposter/Krimi: Name der gesuchten Person
+    series_id: str = ""
+    series_name: str = ""
+    episode: int = 0
+    summary: str = ""                     # 1-2 Sätze Zusammenfassung der Folge
+    open_threads: list[str] = []          # offene Cliffhanger
+    resolved_threads: list[str] = []      # in dieser Folge aufgelöste Cliffhanger
+    next_teaser: str = ""                 # Vorschau auf die nächste Folge
+    facts: list[str] = []                 # neue, feste Tatsachen der Serienwelt (z. B. Regeln)
+    signature: str = ""                   # interne Kennung, um Wiederholungen zu vermeiden
+    _state: dict = PrivateAttr(default_factory=dict)   # Serienzustand (nur Offline-Generator)
+    _extra: dict = PrivateAttr(default_factory=dict)
 
     @property
     def full_text(self) -> str:
@@ -284,3 +324,91 @@ def _full_demo_story() -> Story:
                "galaxy stars", "camera pulling back from earth into a starfield, epic, cinematic", "boom", "Theorie"),
         ],
     )
+
+
+# ---------------------------------------------------------------- Neue Formate mit Claude
+
+class _FormatDraft(BaseModel):
+    """Das füllt Claude für die Rätsel- und Mystery-Formate aus."""
+    title: str = Field(description="Kurzer Videotitel")
+    hook_title: str = Field(description="Max. 5 Wörter, groß oben im Video in den ersten Sekunden")
+    setting: str = Field(description="Schauplatz in wenigen Wörtern")
+    characters: list[Character] = Field(description="Figuren (Name, Rolle, englische Kurzbeschreibung des Aussehens)")
+    scenes: list[Scene]
+    choices: list[str] = Field(description="Nur 'Du entscheidest': 2-3 Optionen mit 'A: …', sonst leer")
+    culprit: str = Field(description="Imposter/Krimi: genauer Name der schuldigen Figur, sonst leer")
+    solution: str = Field(description="Rätsel: Lösung in einem Satz, sonst leer")
+    logic: list[str] = Field(description="Rätsel: 2-4 Schritte vom Hinweis zur Lösung, sonst leer")
+    summary: str = Field(description="1-2 Sätze: was in dieser Folge passiert")
+    open_threads: list[str] = Field(description="Offene Fragen/Cliffhanger, die eine spätere Folge auflösen soll")
+    resolved_threads: list[str] = Field(description="Offene Fragen aus früheren Folgen, die diese Folge auflöst")
+    facts: list[str] = Field(description="Neue feste Tatsachen der Serienwelt (z. B. Regeln), die später gelten")
+    next_teaser: str = Field(description="Ein Satz Vorschau auf die nächste Folge")
+    hashtags: list[str] = Field(description="3-5 Hashtags ohne #")
+
+
+FORMAT_SYSTEM = """Du schreibst Skripte für virale deutsche TikTok-Kurzvideos (9:16, 30-45 Sekunden).
+Allgemeine Regeln:
+- Shot 1 (kind=hook) fesselt in unter 2 Sekunden: max. 9 Wörter.
+- Jeder Shot = ein kurzer gesprochener Satz (max. ca. 16 Wörter). Natürliches, gesprochenes Deutsch.
+- Spannung durch Erzählung und Timing, nicht durch Übertreibung. Keine Emojis, keine Regieanweisungen im Text.
+- on_screen: kurzer Text für die Grafik (Aussage, Hinweis, Regel, Uhrzeit, Countdown-Zahl).
+- speaker: Name der Figur, wenn eine Figur spricht (Text dann in Ich-Form), sonst leer (Erzähler).
+- sfx passend wählen (clue bei Hinweisen, countdown beim Countdown, choice bei Entscheidungen, reveal bei der Auflösung).
+- emphasis: das wichtigste Wort, genau wie im Text geschrieben.
+- Alles ist fiktiv: keine echten Personen, keine echten Verbrechen, keine Gewaltdetails.
+- Wiederhole keine Sätze und keine Formulierungen."""
+
+
+def generate_format_story(fmt_key: str, idea: str, cfg: Config, seconds: int | None = None,
+                          series: dict | None = None, choice: str | None = None) -> Story:
+    """Schreibt eine Folge eines der neuen Formate mit Claude (inkl. Serien-Gedächtnis)."""
+    from .formats import get_format
+
+    spec = get_format(fmt_key)
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=cfg.anthropic_api_key, timeout=120, max_retries=2)
+    min_words, max_words, shots = _length_targets(seconds, cfg)
+    prompt = (f"{spec.rules}\n\nIdee/Thema des Nutzers: {idea or 'frei wählen, überraschend'}\n"
+              f"Länge: {min_words}-{max_words} gesprochene Wörter in ca. {shots} Shots (Video ca. {seconds or 40} s).\n")
+    episode = 0
+    if series:
+        eps = series.get("episodes", [])
+        episode = len(eps) + 1
+        history = "\n".join(f"- Folge {e['episode']}: {e.get('summary', '')}" for e in eps[-10:]) or "- (noch keine)"
+        chars = ", ".join(f"{c.get('name')} ({c.get('role', '')})" for c in series.get("characters", [])) or "(noch keine)"
+        prompt += (f"\nSERIE „{series.get('name')}“ – schreibe Folge {episode}.\n"
+                   f"Feste Figuren (gleich bleibende Namen und Rollen): {chars}\n"
+                   f"Feste Tatsachen der Serienwelt (niemals widersprechen): {'; '.join(series.get('facts', [])) or '(keine)'}\n"
+                   f"Bisherige Folgen:\n{history}\n"
+                   f"Offene Cliffhanger (mindestens einen auflösen und in resolved_threads nennen): "
+                   f"{'; '.join(series.get('open_threads', [])) or '(keine)'}\n"
+                   f"Bereits verwendete Täter/Lösungen nicht wiederholen: "
+                   f"{', '.join(filter(None, (e.get('culprit') for e in eps))) or '(keine)'}\n")
+        if choice:
+            prompt += f"Die Zuschauer haben sich für Option {choice} entschieden – beginne mit den Folgen dieser Wahl.\n"
+    try:
+        response = client.beta.messages.parse(
+            model=cfg.claude_model, max_tokens=16000, system=FORMAT_SYSTEM,
+            messages=[{"role": "user", "content": prompt}], output_format=_FormatDraft,
+            output_config={"effort": "medium"}, betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+        )
+    except anthropic.AuthenticationError:
+        raise StoryError("❌ Der Claude-API-Schlüssel ist ungültig – bitte in den Einstellungen prüfen.")
+    except anthropic.RateLimitError:
+        raise StoryError("❌ Zu viele Anfragen oder kein Guthaben mehr – kurz warten oder Guthaben aufladen.")
+    except anthropic.APITimeoutError:
+        raise StoryError("❌ Claude hat nicht rechtzeitig geantwortet. Bitte gleich noch einmal versuchen.")
+    except anthropic.APIConnectionError:
+        raise StoryError("❌ Keine Verbindung zu Claude – bitte Internetverbindung prüfen.")
+    cost = usage_cost(response, cfg.claude_model)
+    draft = response.parsed_output
+    if response.stop_reason == "refusal" or draft is None:
+        raise StoryError("❌ Claude hat zu dieser Idee kein Skript geschrieben. Probiere eine andere Idee.")
+    data = draft.model_dump()
+    data["hashtags"] = data.get("hashtags") or list(spec.hashtags)
+    story = Story(**data, format=spec.key, episode=episode, script_cost_usd=round(cost, 4))
+    if series:
+        story.series_id, story.series_name = series.get("id", ""), series.get("name", "")
+    return story

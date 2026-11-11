@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 from moviepy import ImageClip
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from .config import Config
 from .voice import Word
@@ -22,6 +22,20 @@ WHITE = (255, 255, 255, 255)
 HIGHLIGHT = (255, 221, 0, 255)      # gerade gesprochenes Wort
 EMPHASIS = (255, 70, 120, 255)      # besonders wichtiges Wort (vom Skript markiert)
 OUTLINE = (0, 0, 0, 255)
+
+# Untertitelstile (in der App auswählbar)
+STYLES = {
+    "tiktok": {"name": "TikTok (weiß/gelb)", "upper": True, "base": WHITE, "active": HIGHLIGHT, "emph": EMPHASIS,
+               "stroke": OUTLINE, "box": None, "glow": None, "size": 1.0},
+    "mystery": {"name": "Mystery (rot)", "upper": True, "base": (238, 238, 238, 255), "active": (255, 82, 82, 255),
+                "emph": (120, 210, 255, 255), "stroke": OUTLINE, "box": None, "glow": (255, 40, 40), "size": 0.95},
+    "clean": {"name": "Klar mit Hintergrund", "upper": False, "base": WHITE, "active": (255, 214, 64, 255),
+              "emph": (255, 140, 90, 255), "stroke": None, "box": (10, 10, 16, 200), "glow": None, "size": 0.9},
+    "neon": {"name": "Neon (türkis)", "upper": True, "base": WHITE, "active": (37, 244, 238, 255),
+             "emph": (255, 60, 200, 255), "stroke": (8, 8, 20, 255), "box": None, "glow": (37, 200, 255), "size": 1.0},
+}
+CAPTION_CENTER_X = 0.45   # etwas links der Mitte: rechts liegt TikToks Like-/Kommentar-Leiste
+CAPTION_WIDTH = 0.74
 
 FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",          # Linux
@@ -60,10 +74,12 @@ def _clean(word: str) -> str:
     return word.strip(".,!?:;–-\"'„“”").lower()
 
 
-def _render(group: list[Word], active: int, font, max_width: int, emphasis: set[str] = frozenset()) -> Image.Image:
+def _render(group: list[Word], active: int, font, max_width: int, emphasis: set[str] = frozenset(),
+            style: dict | None = None) -> Image.Image:
     """Zeichnet eine Wortgruppe; das Wort mit Index `active` wird hervorgehoben."""
-    texts = [w.text.upper() for w in group]
-    stroke = max(4, font.size // 12)
+    style = style or STYLES["tiktok"]
+    texts = [w.text.upper() if style["upper"] else w.text for w in group]
+    stroke = max(4, font.size // 12) if style["stroke"] else 0
     space = font.getlength(" ")
 
     # Wörter auf Zeilen verteilen, falls die Breite nicht reicht
@@ -78,30 +94,47 @@ def _render(group: list[Word], active: int, font, max_width: int, emphasis: set[
     lines.append(line)
 
     ascent, descent = font.getmetrics()
+    pad = 26 if style["box"] else 12
     line_h = ascent + descent + stroke * 2
-    img_h = line_h * len(lines) + stroke * 2
-    img = Image.new("RGBA", (max_width + stroke * 4, img_h), (0, 0, 0, 0))
+    img_h = line_h * len(lines) + stroke * 2 + pad * 2
+    img = Image.new("RGBA", (max_width + stroke * 4 + pad * 2, img_h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
+    if style["box"]:
+        widest = max(sum(tw for _, _, tw in items) + space * (len(items) - 1) for items in lines)
+        bx0 = (img.width - widest) / 2 - pad
+        draw.rounded_rectangle([bx0, 0, bx0 + widest + pad * 2, img_h - 1], radius=22, fill=style["box"])
+    glow = Image.new("RGBA", img.size, (0, 0, 0, 0)) if style["glow"] else None
+    gdraw = ImageDraw.Draw(glow) if glow else None
 
     for row, items in enumerate(lines):
         total = sum(tw for _, _, tw in items) + space * (len(items) - 1)
         x = (img.width - total) / 2
-        y = stroke + row * line_h
+        y = pad + stroke + row * line_h
         for i, t, tw in items:
-            draw.text((x, y), t, font=font, fill=HIGHLIGHT if i == active else (EMPHASIS if _clean(group[i].text) in emphasis else WHITE),
-                      stroke_width=stroke, stroke_fill=OUTLINE)
+            color = style["active"] if i == active else (style["emph"] if _clean(group[i].text) in emphasis else style["base"])
+            if gdraw and i == active:
+                gdraw.text((x, y), t, font=font, fill=style["glow"] + (255,), stroke_width=stroke + 6,
+                           stroke_fill=style["glow"] + (255,))
+            draw.text((x, y), t, font=font, fill=color, stroke_width=stroke,
+                      stroke_fill=style["stroke"] if style["stroke"] else None)
             x += tw + space
+    if glow is not None:
+        base = glow.filter(ImageFilter.GaussianBlur(12))
+        base.alpha_composite(img)
+        img = base
     return img
 
 
 def make_subtitle_clips(words: list[Word], duration: float, cfg: Config,
-                        emphasis: set[str] = frozenset()) -> list[ImageClip]:
+                        emphasis: set[str] = frozenset(), style: str = "tiktok") -> list[ImageClip]:
     """Erzeugt viele kleine Untertitel-Clips (einen pro Wort), die genau dann erscheinen,
-    wenn das Wort gesprochen wird."""
-    font = load_font(str(cfg.fonts_dir), cfg.font_size)
-    max_width = int(cfg.width * 0.85)
+    wenn das Wort gesprochen wird. Position: sichere Zone (nicht unter TikToks Bedienelementen)."""
+    st = STYLES.get(style, STYLES["tiktok"])
+    font = load_font(str(cfg.fonts_dir), int(cfg.font_size * st["size"]))
+    max_width = int(cfg.width * CAPTION_WIDTH)
     groups = group_words(words, cfg.words_per_caption)
     center_y = int(cfg.height * cfg.caption_y)
+    center_x = int(cfg.width * CAPTION_CENTER_X)
 
     clips = []
     for gi, group in enumerate(groups):
@@ -113,7 +146,7 @@ def make_subtitle_clips(words: list[Word], duration: float, cfg: Config,
             end = group[wi + 1].start if wi + 1 < len(group) else group_end
             if end <= start:
                 continue
-            image = np.array(_render(group, wi, font, max_width, emphasis))
+            image = np.array(_render(group, wi, font, max_width, emphasis, st))
             h, w = image.shape[:2]
             clip = ImageClip(image).with_start(start).with_duration(end - start)
 
@@ -124,10 +157,10 @@ def make_subtitle_clips(words: list[Word], duration: float, cfg: Config,
 
                 def position(t, w=w, h=h):
                     s = scale(t)
-                    return ((cfg.width - w * s) / 2, center_y - h * s / 2)
+                    return (center_x - w * s / 2, center_y - h * s / 2)
 
                 clip = clip.resized(scale).with_position(position)
             else:
-                clip = clip.with_position(((cfg.width - w) // 2, center_y - h // 2))
+                clip = clip.with_position((center_x - w // 2, center_y - h // 2))
             clips.append(clip)
     return clips

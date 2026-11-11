@@ -5,7 +5,11 @@ Das brauchen wir später für die animierten Untertitel.
 """
 
 import asyncio
+import hashlib
+import json
+import shutil
 import subprocess
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,8 +34,9 @@ class VoiceClip:
     silent: bool = False  # True = Ersatz ohne Ton (Stimme nicht erreichbar)
 
 
-async def _speak(text: str, voice: str, rate: str, out_path: Path) -> list[Word]:
-    communicate = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
+async def _speak(text: str, voice: str, rate: str, out_path: Path, pitch: str = "+0Hz") -> list[Word]:
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary",
+                                       connect_timeout=10, receive_timeout=45)
     words: list[Word] = []
     with open(out_path, "wb") as f:
         async for chunk in communicate.stream():
@@ -69,23 +74,50 @@ def _silent_fallback(text: str, out_path: Path) -> VoiceClip:
 
 
 FALLBACK_VOICE = "de-DE-ConradNeural"
+_offline = threading.local()   # merkt sich pro Auftrag, ob der Sprachdienst nicht erreichbar ist
 
 
-def synthesize(text: str, out_path: Path, cfg: Config, rate: str | None = None) -> VoiceClip:
+def reset_tts_state():
+    """Vor jedem neuen Video aufrufen: Sprachdienst wieder versuchen."""
+    _offline.down = False
+
+
+def _is_network_error(e: Exception) -> bool:
+    name = type(e).__name__
+    return any(k in name for k in ("Connector", "Connection", "DNS", "Timeout", "ClientOSError")) or \
+        isinstance(e, (OSError, asyncio.TimeoutError))
+
+
+def synthesize(text: str, out_path: Path, cfg: Config, rate: str | None = None, voice: str | None = None,
+               pitch: str | None = None) -> VoiceClip:
     """Erzeugt eine MP3 mit gesprochenem Text und den Wort-Zeitstempeln.
 
-    `rate` überschreibt das Sprechtempo (z. B. "-6%" für einen langsamen, dramatischen Einstieg)."""
+    rate/pitch: Sprechtempo/Tonhöhe, z. B. "-6%" / "-3Hz"; voice: andere Stimme (z. B. für eine Figur).
+    Gleiche Texte werden zwischengespeichert (kein erneuter Abruf beim Neu-Rendern)."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    rate = rate or cfg.voice_rate
-    words = None
-    for voice in dict.fromkeys([cfg.voice, FALLBACK_VOICE]):  # erst Wunschstimme, dann Ersatz
-        try:
-            words = asyncio.run(_speak(text, voice, rate, out_path))
-            break
-        except Exception as e:  # z.B. keine Internetverbindung oder Stimme nicht verfügbar
-            last_error = e
+    rate, pitch, voice = rate or cfg.voice_rate, pitch or "+0Hz", voice or cfg.voice
+    key = hashlib.sha256(f"{text}|{voice}|{rate}|{pitch}".encode()).hexdigest()[:24]
+    cache_mp3 = cfg.cache_dir / "tts" / f"{key}.mp3"
+    cache_json = cache_mp3.with_suffix(".json")
+    if cache_mp3.exists() and cache_json.exists():
+        shutil.copyfile(cache_mp3, out_path)
+        data = json.loads(cache_json.read_text(encoding="utf-8"))
+        return VoiceClip(out_path, data["duration"], [Word(**w) for w in data["words"]])
+
+    words, last_error = None, None
+    if not getattr(_offline, "down", False):
+        for v in dict.fromkeys([voice, FALLBACK_VOICE]):  # erst Wunschstimme, dann Ersatz
+            try:
+                words = asyncio.run(_speak(text, v, rate, out_path, pitch))
+                break
+            except Exception as e:  # z. B. keine Internetverbindung oder Stimme nicht verfügbar
+                last_error = e
+                if _is_network_error(e):
+                    _offline.down = True      # nicht bei jeder Szene erneut warten
+                    break
     if words is None:
-        print(f"  ⚠ Sprachausgabe fehlgeschlagen ({type(last_error).__name__}) → stummer Testmodus.")
+        if last_error is not None:
+            print(f"  ⚠ Sprachausgabe nicht erreichbar ({type(last_error).__name__}) → stummer Testmodus.")
         return _silent_fallback(text, out_path)
 
     duration = audio_duration(out_path)
@@ -93,4 +125,7 @@ def synthesize(text: str, out_path: Path, cfg: Config, rate: str | None = None) 
         tokens = text.split()
         step = duration / max(1, len(tokens))
         words = [Word(t, i * step, (i + 1) * step) for i, t in enumerate(tokens)]
+    cache_mp3.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(out_path, cache_mp3)
+    cache_json.write_text(json.dumps({"duration": duration, "words": [w.__dict__ for w in words]}), encoding="utf-8")
     return VoiceClip(out_path, duration, words)
